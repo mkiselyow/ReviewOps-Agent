@@ -1,0 +1,62 @@
+[
+  {
+    "id": "u_maria",
+    "email": "maria.manager@example.com",
+    "displayName": "Maria",
+    "roleTitle": "Engineering Manager",
+    "department": "Engineering",
+    "managerId": null,
+    "employmentStatus": "active",
+    "isHrAdmin": false
+  },
+  {
+    "id": "u_anna",
+    "email": "anna.frontend@example.com",
+    "displayName": "Anna",
+    "roleTitle": "Senior Frontend Engineer",
+    "department": "Engineering",
+    "managerId": "u_maria",
+    "employmentStatus": "active",
+    "isHrAdmin": false
+  },
+  {
+    "id": "u_mark",
+    "email": "mark.backend@example.com",
+    "displayName": "Mark",
+    "roleTitle": "Middle Backend Engineer",
+    "department": "Engineering",
+    "managerId": "u_maria",
+    "employmentStatus": "active",
+    "isHrAdmin": false
+  },
+  {
+    "id": "u_julia",
+    "email": "julia.qa@example.com",
+    "displayName": "Julia",
+    "roleTitle": "QA Engineer",
+    "department": "Engineering",
+    "managerId": "u_maria",
+    "employmentStatus": "active",
+    "isHrAdmin": false
+  },
+  {
+    "id": "u_nora",
+    "email": "nora.manager@example.com",
+    "displayName": "Nora",
+    "roleTitle": "Engineering Manager",
+    "department": "Platform",
+    "managerId": null,
+    "employmentStatus": "active",
+    "isHrAdmin": false
+  },
+  {
+    "id": "u_olek",
+    "email": "olek.platform@example.com",
+    "displayName": "Olek",
+    "roleTitle": "Platform Engineer",
+    "department": "Platform",
+    "managerId": "u_nora",
+    "employmentStatus": "active",
+    "isHrAdmin": false
+  }
+]

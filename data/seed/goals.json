@@ -1,0 +1,58 @@
+[
+  {
+    "id": "g_anna_1",
+    "employeeId": "u_anna",
+    "title": "Improve product delivery reliability",
+    "description": "Reduce UI regressions and shipping risk across the frontend platform.",
+    "period": "2026-Q2",
+    "status": "active"
+  },
+  {
+    "id": "g_anna_2",
+    "employeeId": "u_anna",
+    "title": "Improve cross-team collaboration",
+    "description": "Partner with backend and QA to unblock shared delivery work.",
+    "period": "2026-Q2",
+    "status": "active"
+  },
+  {
+    "id": "g_mark_1",
+    "employeeId": "u_mark",
+    "title": "Reduce customer-facing defects",
+    "description": "Improve backend test coverage and reduce production incidents.",
+    "period": "2026-Q2",
+    "status": "active"
+  },
+  {
+    "id": "g_mark_2",
+    "employeeId": "u_mark",
+    "title": "Improve technical documentation",
+    "description": "Document core services so on-call and new joiners ramp faster.",
+    "period": "2026-Q2",
+    "status": "active"
+  },
+  {
+    "id": "g_julia_1",
+    "employeeId": "u_julia",
+    "title": "Reduce customer-facing defects",
+    "description": "Strengthen the regression suite and release gate quality.",
+    "period": "2026-Q2",
+    "status": "active"
+  },
+  {
+    "id": "g_julia_2",
+    "employeeId": "u_julia",
+    "title": "Mentor team members",
+    "description": "Coach engineers on writing testable code and risk-based testing.",
+    "period": "2026-Q2",
+    "status": "active"
+  },
+  {
+    "id": "g_olek_1",
+    "employeeId": "u_olek",
+    "title": "Improve product delivery reliability",
+    "description": "Harden CI/CD and platform reliability for all teams.",
+    "period": "2026-Q2",
+    "status": "active"
+  }
+]

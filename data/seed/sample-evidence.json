@@ -1,0 +1,44 @@
+[
+  {
+    "id": "ev_anna_1",
+    "employeeId": "u_anna",
+    "sourceType": "manual_upload",
+    "sourceId": null,
+    "summary": "Refactored the shared tooltip component and helped Mark integrate it in the billing screen.",
+    "impact": "Removed duplicated UI logic across 3 screens and closed two layout bugs (BUG-45, BUG-52).",
+    "period": "2026-Q2",
+    "companyValue": "Own It",
+    "goalId": "g_anna_2",
+    "qualityScore": 0.86,
+    "confidence": 0.8,
+    "visibility": "allow_for_review"
+  },
+  {
+    "id": "ev_anna_2",
+    "employeeId": "u_anna",
+    "sourceType": "manual_upload",
+    "sourceId": null,
+    "summary": "Introduced a visual regression check in the frontend CI pipeline.",
+    "impact": "Caught 4 regressions before release in Q2 and reduced hotfixes for UI defects.",
+    "period": "2026-Q2",
+    "companyValue": "Stand Out by Design",
+    "goalId": "g_anna_1",
+    "qualityScore": 0.82,
+    "confidence": 0.78,
+    "visibility": "allow_for_review"
+  },
+  {
+    "id": "ev_mark_1",
+    "employeeId": "u_mark",
+    "sourceType": "manual_upload",
+    "sourceId": null,
+    "summary": "Added integration tests for the billing service and fixed a flaky payment webhook.",
+    "impact": "Reduced billing-related production incidents and stabilized the nightly pipeline.",
+    "period": "2026-Q2",
+    "companyValue": "Act with Speed",
+    "goalId": "g_mark_1",
+    "qualityScore": 0.8,
+    "confidence": 0.75,
+    "visibility": "allow_for_review"
+  }
+]
