@@ -54,11 +54,10 @@ Next.js app (TypeScript)                Python ADK 2.0 agent service (FastAPI)
 
 The **agent brain runs in the Python service** (`agent-service/`) as real ADK 2.0
 graph `Workflow`s with Pydantic-typed I/O; the TS app calls it over REST via
-`src/server/agentClient.ts` when `AGENT_SERVICE_URL` is set. Access control,
+`src/server/agentClient.ts` (`AGENT_SERVICE_URL`, **required**). Access control,
 consent, and PII minimization happen in the **TS app before the REST call** — the
-LLM is never the security boundary. (When `AGENT_SERVICE_URL` is unset, the app
-falls back to the in-process TS agents, used by the offline unit tests.) See
-**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+LLM is never the security boundary. (Unit tests mock the client; there is no
+in-process agent fallback.) See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ## Tech stack
 
@@ -96,7 +95,7 @@ npm run dev                     # http://localhost:3000
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `DATABASE_URL` | `file:./data/reviewops.sqlite` | SQLite location (`:memory:` for tests) |
-| `AGENT_SERVICE_URL` | _(empty)_ | Python service URL. Unset → in-process TS-agent fallback (tests) |
+| `AGENT_SERVICE_URL` | _(required)_ | Python agent service URL — local dev: `http://127.0.0.1:8800` |
 | `TOKEN_EXPIRY_HOURS` | `168` | survey link lifetime |
 
 **Agent service (`agent-service/.env`):** `GOOGLE_API_KEY` (required),
@@ -154,8 +153,8 @@ grounding (including UUID citations).
 
 - Mock login (no real SSO); cookie-based session.
 - Mock HRIS, mock outbox (no real Slack/email/Lattice/BambooHR).
-- The offline TS-agent fallback (used by tests) is heuristic; the live agent
-  service uses Gemini.
+- The app requires the running agent service (Gemini); unit tests mock the
+  agent client.
 - Single-manager direct-report scope (no skip-level / HR-admin flows).
 - PII redaction is pattern-based and demonstrative.
 
