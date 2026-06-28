@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { reseed, USERS } from "./helpers";
 import {
   createQuestionnaire,
@@ -9,12 +9,10 @@ import {
   getQuestionnaireResults,
   getQuestions,
 } from "../src/server/services/surveyService";
-import {
-  runQuestionnaireAgent,
-  questionnaireOutputSchema,
-} from "../src/server/agents/questionnaireAgent";
 import { orchestrateResponseSubmission } from "../src/server/agents/orchestrator";
 import { PermissionError } from "../src/server/auth/permissions";
+
+vi.mock("../src/server/agentClient", async () => await import("./agentClientMock"));
 
 const STRONG_ANSWER =
   "I refactored the shared tooltip component and helped Mark integrate it in billing. This reduced duplicated UI logic and closed two layout bugs. Evidence: PR-123, BUG-45.";
@@ -25,19 +23,6 @@ function tokenFromLink(link: string): string {
 
 describe("survey flow", () => {
   beforeEach(reseed);
-
-  it("questionnaire generation returns a valid schema with 5-7 questions", async () => {
-    const result = await runQuestionnaireAgent({
-      topic: "Q2 collaboration and ownership",
-      period: "2026-Q2",
-      companyValues: ["Own It", "Act with Speed"],
-      roleExpectations: ["collaboration"],
-    });
-    const parsed = questionnaireOutputSchema.safeParse(result.output);
-    expect(parsed.success).toBe(true);
-    expect(result.output.questions.length).toBeGreaterThanOrEqual(5);
-    expect(result.output.questions.length).toBeLessThanOrEqual(7);
-  });
 
   it("blocks creating assignments for an employee outside the team", () => {
     const q = createQuestionnaire(USERS.maria, { title: "T", period: "2026-Q2" });

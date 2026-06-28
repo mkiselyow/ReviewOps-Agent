@@ -134,6 +134,8 @@ export const questionnaires = sqliteTable("questionnaires", {
   evidenceValidation: integer("evidence_validation", { mode: "boolean" })
     .notNull()
     .default(true),
+  // Safety review result captured at generation time (shown on the preview page).
+  safetyJson: text("safety_json"),
   status: text("status").notNull().default("draft"),
   createdAt: createdAt(),
   approvedAt: text("approved_at"),

@@ -3,9 +3,14 @@ import Layout from "@/components/Layout";
 import QuestionnairePreview from "@/components/QuestionnairePreview";
 import { getCurrentUser } from "@/server/auth/mockSession";
 import { getQuestionnaire, getQuestions } from "@/server/services/surveyService";
-import { runQuestionnaireSafetyAgent } from "@/server/agents/questionnaireSafetyAgent";
 
 export const dynamic = "force-dynamic";
+
+type SafetyReport = {
+  decision: "approved" | "needs_revision";
+  riskyQuestions: { position: number; reason: string; saferAlternative: string }[];
+  notes: string;
+};
 
 export default async function PreviewPage({
   params,
@@ -26,9 +31,10 @@ export default async function PreviewPage({
   }
 
   const questions = getQuestions(id);
-  const safety = await runQuestionnaireSafetyAgent({
-    questions: questions.map((q) => ({ position: q.position, text: q.text })),
-  });
+  // Safety review was captured at generation time.
+  const safety: SafetyReport = questionnaire.safetyJson
+    ? JSON.parse(questionnaire.safetyJson)
+    : { decision: "approved", riskyQuestions: [], notes: "" };
 
   return (
     <Layout user={user}>
@@ -44,7 +50,7 @@ export default async function PreviewPage({
           text: q.text,
           explanation: q.explanation,
         }))}
-        safety={safety.output}
+        safety={safety}
       />
     </Layout>
   );

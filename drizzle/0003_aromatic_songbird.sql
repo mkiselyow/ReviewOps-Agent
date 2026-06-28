@@ -1,0 +1,1 @@
+ALTER TABLE `questionnaires` ADD `safety_json` text;

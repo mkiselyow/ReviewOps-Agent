@@ -41,6 +41,7 @@ export function createQuestionnaire(
     period: string;
     privacyMode?: string;
     evidenceValidation?: boolean;
+    safetyJson?: string | null;
   },
   questionList: NewQuestionInput[] = [],
 ): Questionnaire {
@@ -53,6 +54,7 @@ export function createQuestionnaire(
       period: input.period,
       privacyMode: input.privacyMode ?? "named_review_evidence",
       evidenceValidation: input.evidenceValidation ?? true,
+      safetyJson: input.safetyJson ?? null,
       status: "draft",
     })
     .returning()

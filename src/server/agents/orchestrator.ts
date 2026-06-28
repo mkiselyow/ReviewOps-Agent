@@ -19,17 +19,9 @@ import {
 } from "../services/evidenceService";
 import { validateAndRoute } from "./evidenceValidation";
 import { generateReviewContext, saveReviewDraft } from "../services/reviewService";
-import { runQuestionnaireAgent } from "./questionnaireAgent";
-import { runQuestionnaireSafetyAgent, type SafetyOutput } from "./questionnaireSafetyAgent";
-import { runEvidenceValidatorAgent, type ValidatorOutput } from "./evidenceValidatorAgent";
-import { runValuesMapperAgent } from "./valuesMapperAgent";
-import { runReviewDraftAgent } from "./reviewDraftAgent";
-import { runFairnessGroundingAgent, type FairnessOutput } from "./fairnessGroundingAgent";
 import { runPrivacyFilterAgent } from "./privacyFilterAgent";
 import {
-  usingAgentService,
   generateQuestionnaire,
-  validateEvidence,
   generateReview,
   type ClientReviewContext,
 } from "../agentClient";
@@ -37,10 +29,18 @@ import {
 const LONG_FORM_TYPES = new Set(["long_text", "short_text", "evidence_link"]);
 
 /**
- * Orchestrator: routes each workflow through the specialized agents and the
- * permission-checked services, and combines their outputs (see
- * docs/ARCHITECTURE.md §2).
+ * Orchestrator: gathers permission-checked, minimized context, calls the Python
+ * ADK 2.0 agent service over REST (`agentClient`), and persists the results.
+ * The deterministic privacy filter runs in TS before the call
+ * (see docs/ARCHITECTURE.md §2). Requires AGENT_SERVICE_URL.
  */
+
+/** Questionnaire safety review shape (from the service). */
+type SafetyResult = {
+  decision: "approved" | "needs_revision";
+  riskyQuestions: { position: number; reason: string; saferAlternative: string }[];
+  notes: string;
+};
 
 // --- 1. Questionnaire generation + safety -----------------------------------
 
@@ -58,88 +58,41 @@ export async function orchestrateQuestionnaireGeneration(
   const companyValues = getCompanyValueNames();
   const roleExpectations = input.roleTitle ? getRoleExpectations(input.roleTitle) : [];
 
-  let title: string;
-  let purpose: string;
-  let privacyMode: string;
-  let genQuestions: {
-    position: number;
-    questionType: string;
-    text: string;
-    explanation: string;
-    required: boolean;
-  }[];
-  let safetyResult: SafetyOutput;
-  let source: string;
+  // The Python ADK 2.0 service runs questionnaire -> safety.
+  const r = await generateQuestionnaire({
+    topic: input.topic,
+    period: input.period,
+    purpose: input.purpose,
+    roleTitle: input.roleTitle,
+    companyValues,
+    roleExpectations,
+    notes: input.notes,
+  });
+  const safetyResult: SafetyResult = {
+    decision: r.safety.decision,
+    riskyQuestions: r.safety.riskyQuestions,
+    notes: r.safety.notes,
+  };
 
-  if (usingAgentService()) {
-    // Hybrid: the Python ADK 2.0 service runs questionnaire -> safety.
-    const r = await generateQuestionnaire({
-      topic: input.topic,
-      period: input.period,
-      purpose: input.purpose,
-      roleTitle: input.roleTitle,
-      companyValues,
-      roleExpectations,
-      notes: input.notes,
-    });
-    title = r.title;
-    purpose = r.purpose;
-    privacyMode = r.privacyMode;
-    genQuestions = r.questions;
-    safetyResult = {
-      decision: r.safety.decision,
-      riskyQuestions: r.safety.riskyQuestions.map((x) => ({
-        position: x.position,
-        text: "",
-        reason: x.reason,
-        saferAlternative: x.saferAlternative,
-      })),
-      notes: r.safety.notes,
-    };
-    source = "gemini";
-  } else {
-    // Fallback: in-process TS agents (used by unit tests, no service needed).
-    const generated = await runQuestionnaireAgent({
-      topic: input.topic,
-      purpose: input.purpose,
-      period: input.period,
-      roleTitle: input.roleTitle,
-      companyValues,
-      roleExpectations,
-      notes: input.notes,
-    });
-    const safety = await runQuestionnaireSafetyAgent({
-      questions: generated.output.questions.map((q) => ({
-        position: q.position,
-        text: q.text,
-      })),
-    });
-    title = generated.output.title;
-    purpose = generated.output.purpose;
-    privacyMode = generated.output.privacyMode;
-    genQuestions = generated.output.questions;
-    safetyResult = safety.output;
-    source = generated.source;
-  }
-
-  // Persist as a draft regardless; the manager reviews safety before approving.
+  // Persist as a draft (with the safety report) for the manager to review.
   const questionnaire = createQuestionnaire(
     managerId,
     {
-      title,
-      purpose,
+      title: r.title,
+      purpose: r.purpose,
       period: input.period,
-      privacyMode,
+      privacyMode: r.privacyMode,
       evidenceValidation: input.evidenceValidation ?? true,
+      safetyJson: JSON.stringify(safetyResult),
     },
-    genQuestions,
+    r.questions,
   );
 
   return {
     questionnaire,
     questions: getQuestions(questionnaire.id),
     safety: safetyResult,
-    source,
+    source: "gemini",
   };
 }
 
@@ -272,52 +225,36 @@ export async function orchestrateReviewGeneration(
   // Add the real name only to the heading, after the model step.
   const heading = `# Performance Review — ${raw.employee.displayName} (${raw.employee.roleTitle})\n**Period:** ${period}\n`;
 
-  let bodyMarkdown: string;
-  let fairnessData: FairnessData;
-  let source: string;
-
-  if (usingAgentService()) {
-    // Python service runs privacy -> review draft -> fairness on the sanitized
-    // context (alias only; the heading/name is added here, after the model).
-    const ctx: ClientReviewContext = {
-      employee: {
-        role_title: privacy.output.employee.roleTitle,
-        alias: privacy.output.employee.alias,
-      },
-      period: privacy.output.period,
-      goals: privacy.output.goals,
-      role_expectations: privacy.output.roleExpectations,
-      company_values: privacy.output.companyValues,
-      evidence: privacy.output.evidence.map((e) => ({
-        id: e.id,
-        summary: e.summary,
-        impact: e.impact,
-        period: e.period,
-        company_value: e.companyValue,
-        goal_id: e.goalId,
-        quality_score: e.qualityScore,
-      })),
-    };
-    const r = await generateReview(ctx);
-    bodyMarkdown = r.markdown;
-    fairnessData = r.fairness;
-    source = "gemini";
-  } else {
-    const draft = await runReviewDraftAgent(privacy.output);
-    bodyMarkdown = draft.output.markdown;
-    const fairness = await runFairnessGroundingAgent({
-      markdown: `${heading}\n${bodyMarkdown}`,
-      evidenceIds,
-    });
-    fairnessData = fairness.output;
-    source = draft.source;
-  }
+  // Python service runs privacy -> review draft -> fairness on the sanitized
+  // context (alias only; the heading/name is added here, after the model).
+  const ctx: ClientReviewContext = {
+    employee: {
+      role_title: privacy.output.employee.roleTitle,
+      alias: privacy.output.employee.alias,
+    },
+    period: privacy.output.period,
+    goals: privacy.output.goals,
+    role_expectations: privacy.output.roleExpectations,
+    company_values: privacy.output.companyValues,
+    evidence: privacy.output.evidence.map((e) => ({
+      id: e.id,
+      summary: e.summary,
+      impact: e.impact,
+      period: e.period,
+      company_value: e.companyValue,
+      goal_id: e.goalId,
+      quality_score: e.qualityScore,
+    })),
+  };
+  const r = await generateReview(ctx);
+  const bodyMarkdown = r.markdown;
+  const fairnessData: FairnessData = r.fairness;
 
   const markdown = `${heading}\n${bodyMarkdown}`;
   const grounding = {
     removedCategories: privacy.removedCategories,
     evidenceCount: evidenceIds.length,
-    source,
+    source: "gemini",
   };
 
   const saved = saveReviewDraft(managerId, {

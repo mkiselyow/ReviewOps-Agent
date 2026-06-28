@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { reseed, USERS } from "./helpers";
-import { runEvidenceValidatorAgent } from "../src/server/agents/evidenceValidatorAgent";
-import { runQuestionnaireSafetyAgent } from "../src/server/agents/questionnaireSafetyAgent";
 import { orchestrateResponseSubmission } from "../src/server/agents/orchestrator";
+
+vi.mock("../src/server/agentClient", async () => await import("./agentClientMock"));
 import {
   createQuestionnaire,
   approveQuestionnaire,
@@ -27,45 +27,6 @@ function tokenFromLink(link: string): string {
 
 describe("evidence validation", () => {
   beforeEach(reseed);
-
-  it("flags a vague answer and returns a follow-up question", async () => {
-    const r = await runEvidenceValidatorAgent({
-      answerText: WEAK,
-      questionText: "Describe a contribution.",
-      period: "2026-Q2",
-      roleExpectations: [],
-      companyValues: ["Own It"],
-    });
-    expect(r.output.isWeak).toBe(true);
-    expect(r.output.qualityScore).toBeLessThan(0.6);
-    expect(r.output.followUpQuestion).toBeTruthy();
-    expect(r.output.missingFields.length).toBeGreaterThan(0);
-  });
-
-  it("accepts a specific, impact-backed answer", async () => {
-    const r = await runEvidenceValidatorAgent({
-      answerText: STRONG,
-      questionText: "Describe a contribution.",
-      period: "2026-Q2",
-      roleExpectations: [],
-      companyValues: ["Own It"],
-    });
-    expect(r.output.isWeak).toBe(false);
-    expect(r.output.qualityScore).toBeGreaterThanOrEqual(0.6);
-    expect(r.output.followUpQuestion).toBeNull();
-  });
-
-  it("rejects a sensitive / protected-topic question", async () => {
-    const r = await runQuestionnaireSafetyAgent({
-      questions: [
-        { position: 0, text: "Describe a concrete example of ownership." },
-        { position: 1, text: "What is your religion and family situation?" },
-      ],
-    });
-    expect(r.output.decision).toBe("needs_revision");
-    expect(r.output.riskyQuestions.length).toBeGreaterThan(0);
-    expect(r.output.riskyQuestions[0].saferAlternative).toBeTruthy();
-  });
 
   it("end-to-end: weak answer is flagged then upgraded on resubmission, carrying consent", async () => {
     const q = createQuestionnaire(
