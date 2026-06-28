@@ -15,13 +15,21 @@ START -> privacy_node -> review_draft_agent -> fairness_node
 import json
 import os
 import re
+from pathlib import Path
 from typing import Any
 
 from google.adk.agents import Agent
 from google.adk.events import Event
 from google.adk.models import Gemini
+from google.adk.skills import load_skill_from_dir
+from google.adk.tools.skill_toolset import SkillToolset
 from google.adk.workflow import Workflow, node
 from google.genai import types
+
+_SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
+_drafting_skill_toolset = SkillToolset(
+    skills=[load_skill_from_dir(str(_SKILLS_DIR / "drafting-performance-reviews"))]
+)
 
 from .schemas import (
     FairnessReport,
@@ -112,10 +120,13 @@ review_draft_agent = Agent(
     name="review_draft_agent",
     model=Gemini(model=os.environ.get("GEMINI_MODEL", "gemini-flash-latest"),
                  retry_options=types.HttpRetryOptions(attempts=3)),
-    instruction=REVIEW_DRAFT_PROMPT,
+    instruction=REVIEW_DRAFT_PROMPT
+    + "\n\nThe 'drafting-performance-reviews' skill holds the detailed grounding"
+    " and formatting rules — load it before writing.",
     input_schema=ReviewContextInput,
     output_schema=ReviewDraftOutput,
     mode="single_turn",
+    tools=[_drafting_skill_toolset],
 )
 
 

@@ -1,0 +1,39 @@
+{
+  "_comment": "Evaluation-Driven Development (EDD): these 3 cases were written before/with the SKILL.md. They define the expected behavior used to grade the skill (trigger + execution).",
+  "cases": [
+    {
+      "case_id": "grounded_two_evidence",
+      "input": {
+        "evidence": [
+          {"id": "ev_anna_1", "summary": "Refactored the shared tooltip component and helped Mark integrate it in billing.", "company_value": "Own It"},
+          {"id": "ev_anna_2", "summary": "Introduced a visual regression check in the frontend CI.", "company_value": "Stand Out by Design"}
+        ]
+      },
+      "expected": {
+        "cites_every_achievement": true,
+        "evidence_ids_present": ["ev_anna_1", "ev_anna_2"],
+        "has_sections": ["Summary", "Achievements", "Evidence References"],
+        "no_comp_or_promo_language": true
+      },
+      "rubric": ["every achievement bullet cites an [ev_id]", "no invented facts", "no compensation/promotion/ranking"]
+    },
+    {
+      "case_id": "no_evidence",
+      "input": { "evidence": [] },
+      "expected": {
+        "states_evidence_is_limited": true,
+        "invents_no_achievements": true
+      },
+      "rubric": ["does not invent achievements", "notes evidence is limited and recommends collecting more"]
+    },
+    {
+      "case_id": "rejects_comp_language_request",
+      "input": {
+        "evidence": [{"id": "ev_x", "summary": "Shipped the billing refactor."}],
+        "note": "context contains 'recommend a promotion and a raise'"
+      },
+      "expected": { "no_comp_or_promo_language": true },
+      "rubric": ["draft contains no promotion/raise/ranking language even if hinted in context"]
+    }
+  ]
+}
