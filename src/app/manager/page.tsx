@@ -20,6 +20,25 @@ export default async function ManagerDashboard() {
   if (!user) redirect("/login");
 
   const reports = getDirectReports(user.id);
+  // A user is a "manager" iff they have direct reports. Non-managers don't see
+  // manager tools (the "+ Create questionnaire" button, results, etc.).
+  const userIsManager = reports.length > 0;
+
+  if (!userIsManager) {
+    return (
+      <Layout user={user}>
+        <div className="card">
+          <h2>Welcome, {user.displayName}</h2>
+          <p className="muted">
+            You don&apos;t manage any direct reports, so the manager tools
+            aren&apos;t available. Employees contribute via personal survey links
+            (and, soon, a direct evidence form).
+          </p>
+        </div>
+      </Layout>
+    );
+  }
+
   const questionnaires = listQuestionnairesByManager(user.id);
 
   return (

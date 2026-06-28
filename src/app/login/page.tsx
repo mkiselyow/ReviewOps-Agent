@@ -1,10 +1,15 @@
+import { redirect } from "next/navigation";
 import Layout from "@/components/Layout";
 import UserSwitcher from "@/components/UserSwitcher";
 import { listAllUsers, getUserById } from "@/server/services/hrisService";
+import { getCurrentUser } from "@/server/auth/mockSession";
 
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
+  // Already logged in → go to the dashboard instead of showing the login UI.
+  if (await getCurrentUser()) redirect("/manager");
+
   const users = listAllUsers().map((u) => ({
     id: u.id,
     displayName: u.displayName,

@@ -6,11 +6,20 @@ import {
   PermissionError,
 } from "./auth/permissions";
 import { logAudit } from "./services/auditService";
+import { isManager } from "./services/hrisService";
 import type { User } from "./db/schema";
 
+/**
+ * Require a logged-in user who is a manager (has at least one direct report).
+ * Manager-only API actions (create/approve questionnaire, generate review) use
+ * this; non-managers get a 403.
+ */
 export async function requireManager(): Promise<User> {
-  // Any logged-in user may act as a manager actor; scope is enforced per action.
-  return requireCurrentUser();
+  const user = await requireCurrentUser();
+  if (!isManager(user.id)) {
+    throw new PermissionError("Manager access required");
+  }
+  return user;
 }
 
 /** Maps domain errors to HTTP responses and audits denied access. */

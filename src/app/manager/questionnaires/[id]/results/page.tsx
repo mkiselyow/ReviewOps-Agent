@@ -95,6 +95,29 @@ export default async function ResultsPage({
             </div>
           )}
 
+          {r.responses.length > 0 && (
+            <details style={{ marginTop: 10 }}>
+              <summary className="small muted">
+                Question responses ({r.responses.length})
+              </summary>
+              <div className="stack" style={{ marginTop: 8 }}>
+                {r.responses.map((resp) => {
+                  const q = results.questions.find((x) => x.id === resp.questionId);
+                  return (
+                    <div key={resp.id} className="note small">
+                      <div className="muted">
+                        {q ? `${q.position + 1}. ${q.text}` : "Question"}
+                      </div>
+                      <div style={{ marginTop: 4 }}>
+                        {resp.answerText || <em>(no answer)</em>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+          )}
+
           <p className="small" style={{ marginTop: 10 }}>
             <Link
               className="btn btn-ghost"

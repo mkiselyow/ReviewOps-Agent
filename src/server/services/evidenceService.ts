@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../db";
 import {
   evidenceItems,
@@ -152,4 +152,29 @@ export function getEvidenceForReview(
 
 export function getResponseById(responseId: string) {
   return db.select().from(responses).where(eq(responses.id, responseId)).get() ?? null;
+}
+
+/**
+ * Evidence derived from a specific set of questionnaire responses. Used by the
+ * results page so a questionnaire only shows evidence from ITS responses — not
+ * the employee's whole period of evidence (which would leak seed/other-survey
+ * evidence into a fresh questionnaire).
+ */
+export function getEvidenceByResponseIds(
+  managerId: string,
+  employeeId: string,
+  responseIds: string[],
+): EvidenceItem[] {
+  assertManagerCanViewEmployee(managerId, getUserById(employeeId));
+  if (responseIds.length === 0) return [];
+  return db
+    .select()
+    .from(evidenceItems)
+    .where(
+      and(
+        eq(evidenceItems.sourceType, "questionnaire_response"),
+        inArray(evidenceItems.sourceId, responseIds),
+      ),
+    )
+    .all();
 }

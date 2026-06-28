@@ -12,7 +12,7 @@ import {
 } from "../db/schema";
 import { getUserById } from "./hrisService";
 import { recordDelivery } from "./outboxService";
-import { getEmployeeEvidence } from "./evidenceService";
+import { getEmployeeEvidence, getEvidenceByResponseIds } from "./evidenceService";
 import { assertOwnsQuestionnaire } from "../auth/rbac";
 import {
   assertManagerCanViewEmployee,
@@ -338,7 +338,13 @@ export function getQuestionnaireResults(
   const respondents: RespondentResult[] = assignments.map((a) => {
     const user = getUserById(a.respondentId);
     const responsesForA = getResponsesForAssignment(a.id);
-    const evidence = getEmployeeEvidence(managerId, a.respondentId, questionnaire.period);
+    // Scope evidence to THIS questionnaire's responses (not the employee's whole
+    // period), so a fresh questionnaire shows nothing until someone responds.
+    const evidence = getEvidenceByResponseIds(
+      managerId,
+      a.respondentId,
+      responsesForA.map((r) => r.id),
+    );
     const scored = evidence.filter((e) => e.qualityScore != null);
     const avg =
       scored.length > 0
