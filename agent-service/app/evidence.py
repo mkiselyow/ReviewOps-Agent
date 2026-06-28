@@ -10,6 +10,7 @@ START -> security_node -> evidence_validator -> finalize_node
 """
 
 import json
+import os
 import re
 from typing import Any
 
@@ -45,18 +46,24 @@ def _redact(text: str) -> tuple[str, list[str]]:
 
 
 def _to_text(node_input: Any) -> str:
-    """Coerce a node input (str / dict / Content / BaseModel) to a JSON/text string."""
+    """Coerce a node input (str / Content / dict / BaseModel) to a JSON/text string.
+
+    Order matters: a Content message has BOTH `.parts` and `.model_dump_json`, so
+    extract its inner text first rather than serializing the whole envelope.
+    """
     if node_input is None:
         return "{}"
     if isinstance(node_input, str):
         return node_input
-    if hasattr(node_input, "model_dump_json"):
-        return node_input.model_dump_json()
-    if isinstance(node_input, dict):
-        return json.dumps(node_input)
     parts = getattr(node_input, "parts", None)
     if parts:
         return "".join(getattr(p, "text", "") or "" for p in parts)
+    if hasattr(node_input, "model_dump_json"):
+        return node_input.model_dump_json()
+    if isinstance(node_input, dict):
+        if "parts" in node_input and isinstance(node_input["parts"], list):
+            return "".join((p or {}).get("text", "") or "" for p in node_input["parts"])
+        return json.dumps(node_input)
     return str(node_input)
 
 
@@ -74,8 +81,9 @@ async def security_node(node_input: Any):
     data = _load_json(node_input)
     ev = EvidenceInput(**data)
     ev.answer_text, removed = _redact(ev.answer_text)
-    # Pass the sanitized, structured input on to the validator agent.
-    yield Event(output=ev.model_dump_json(), state={"pii_removed": removed})
+    # Pass the sanitized, structured input on to the validator agent as a dict
+    # (the next node validates it against its input_schema).
+    yield Event(output=ev.model_dump(), state={"pii_removed": removed})
 
 
 VALIDATOR_PROMPT = """You are the Evidence Validator Agent. Given an employee's
@@ -92,7 +100,7 @@ what changed, and a supporting link or artifact."""
 
 evidence_validator = Agent(
     name="evidence_validator",
-    model=Gemini(model="gemini-flash-latest",
+    model=Gemini(model=os.environ.get("GEMINI_MODEL", "gemini-flash-latest"),
                  retry_options=types.HttpRetryOptions(attempts=3)),
     instruction=VALIDATOR_PROMPT,
     input_schema=EvidenceInput,
@@ -122,10 +130,8 @@ async def finalize_node(node_input: Any):
         map_confidence=val.confidence,
     )
     result = EvidenceResult(mapped=mapped, status=status, routed_reason=reason)
-    # message: surfaced by the CLI/playground; output: machine-readable result
-    # consumed by the next node / REST caller.
-    yield Event(message=result.model_dump_json(indent=2))
-    yield Event(output=result.model_dump_json())
+    # Terminal structured output (dict) consumed by the REST caller.
+    yield Event(output=result.model_dump())
 
 
 evidence_workflow = Workflow(

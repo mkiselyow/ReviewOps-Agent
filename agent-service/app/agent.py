@@ -59,7 +59,7 @@ in the `safety` field."""
 
 def _model() -> Gemini:
     return Gemini(
-        model="gemini-flash-latest",
+        model=os.environ.get("GEMINI_MODEL", "gemini-flash-latest"),
         retry_options=types.HttpRetryOptions(attempts=3),
     )
 
