@@ -3,73 +3,87 @@
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
-from zoneinfo import ZoneInfo
+"""ReviewOps agent service — vertical slice: questionnaire -> safety.
 
-from google.adk.agents import Agent
-from google.adk.apps import App
-from google.adk.models import Gemini
-from google.genai import types
+A two-node ADK 2.0 graph Workflow:
+  START -> questionnaire_agent -> safety_agent
+
+The questionnaire agent generates a 5-7 question work-evidence survey; the
+safety agent reviews it for sensitive/leading questions and returns the
+questionnaire together with its safety verdict.
+"""
 
 import os
 
 # API-key mode (Google AI Studio). google-genai reads GOOGLE_API_KEY from the
-# environment / .env when Vertex AI is disabled. Switch to Vertex later by
-# setting GOOGLE_GENAI_USE_VERTEXAI=True + GOOGLE_CLOUD_PROJECT/LOCATION.
+# environment / .env when Vertex AI is disabled.
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "False")
 
+from google.adk.agents import Agent
+from google.adk.apps import App
+from google.adk.models import Gemini
+from google.adk.workflow import Workflow
+from google.genai import types
 
-def get_weather(query: str) -> str:
-    """Simulates a web search. Use it get information on weather.
+from .schemas import QuestionnaireOutput, QuestionnaireWithSafety
 
-    Args:
-        query: A string containing the location to get weather information for.
+QUESTIONNAIRE_PROMPT = """You are the Questionnaire Agent for an engineering
+performance-evidence tool. From the manager's request (topic, period, purpose),
+produce a SHORT work-evidence questionnaire.
 
-    Returns:
-        A string with the simulated weather information for the queried location.
-    """
-    if "sf" in query.lower() or "san francisco" in query.lower():
-        return "It's 60 degrees and foggy."
-    return "It's 90 degrees and sunny."
+Rules:
+- 5 to 7 questions only.
+- Strictly work-related; never ask about health, family, politics, religion,
+  nationality, private life, salary, or immigration.
+- Collect concrete examples, measurable impact, and links/artifacts as evidence.
+- Prefer long_text and evidence_link question types for the core questions.
+- Give each question a one-sentence explanation of why it is asked.
+- Default privacy_mode to "named_review_evidence".
+Return only the structured questionnaire."""
 
+SAFETY_PROMPT = """You are the Questionnaire Safety Agent. You receive a
+generated questionnaire. Review every question and decide whether it is safe to
+send.
 
-def get_current_time(query: str) -> str:
-    """Simulates getting the current time for a city.
+Flag a question as risky if it touches health, family, politics, religion,
+nationality, private life, salary, or immigration, or if it is manipulative,
+accusatory, or leading; for each risky question give a safer alternative.
+Set decision to "needs_revision" if any question is risky, else "approved".
 
-    Args:
-        city: The name of the city to get the current time for.
-
-    Returns:
-        A string with the current time information.
-    """
-    if "sf" in query.lower() or "san francisco" in query.lower():
-        tz_identifier = "America/Los_Angeles"
-    else:
-        return f"Sorry, I don't have timezone information for query: {query}."
-
-    tz = ZoneInfo(tz_identifier)
-    now = datetime.datetime.now(tz)
-    return f"The current time for query {query} is {now.strftime('%Y-%m-%d %H:%M:%S %Z%z')}"
+Return the questionnaire UNCHANGED in the `questionnaire` field, and your review
+in the `safety` field."""
 
 
-root_agent = Agent(
-    name="root_agent",
-    model=Gemini(
+def _model() -> Gemini:
+    return Gemini(
         model="gemini-flash-latest",
         retry_options=types.HttpRetryOptions(attempts=3),
-    ),
-    instruction="You are a helpful AI assistant designed to provide accurate and useful information.",
-    tools=[get_weather, get_current_time],
+    )
+
+
+questionnaire_agent = Agent(
+    name="questionnaire_agent",
+    model=_model(),
+    instruction=QUESTIONNAIRE_PROMPT,
+    output_schema=QuestionnaireOutput,
+    mode="single_turn",
+)
+
+safety_agent = Agent(
+    name="safety_agent",
+    model=_model(),
+    instruction=SAFETY_PROMPT,
+    input_schema=QuestionnaireOutput,
+    output_schema=QuestionnaireWithSafety,
+    mode="single_turn",
+)
+
+root_agent = Workflow(
+    name="root_agent",
+    edges=[("START", questionnaire_agent, safety_agent)],
 )
 
 app = App(
