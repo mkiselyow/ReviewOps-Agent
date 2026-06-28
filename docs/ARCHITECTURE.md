@@ -66,6 +66,58 @@ is capable (`RoutedAgent`, `LongRunningFunctionTool`) but lacks the graph DSL an
 Agent Runtime target. To maximize ADK depth while keeping the TS UI, the agent
 brain is Python; the app stays TypeScript and calls it over REST.
 
+### 1.1 Usage — actors & use cases
+
+```mermaid
+flowchart LR
+  Mgr(("👤 Manager")):::actor
+  Emp(("👤 Employee")):::actor
+
+  subgraph UC["Use cases"]
+    U1([Generate & approve questionnaire])
+    U2([View team results & evidence])
+    U3([Review low-confidence evidence])
+    U4([Generate & approve review draft])
+    U5([Export review markdown])
+    U6([Open link & submit survey response])
+    U7([Add evidence directly])
+    U8([Improve a weak answer])
+    U9([Set evidence-review consent])
+  end
+
+  Mgr --- U1 & U2 & U3 & U4 & U5
+  Emp --- U6 & U7 & U8 & U9
+  classDef actor fill:#3a6df0,color:#fff,stroke:#1e3a8a;
+```
+
+### 1.2 Activity — end-to-end lifecycle
+
+```mermaid
+flowchart TD
+  A([Manager: describe topic/period]) --> B[Agent: generate questionnaire]
+  B --> C[Agent: safety review]
+  C --> D{Manager approves?}
+  D -- no/edit --> B
+  D -- yes --> E[Create personal token links → mock outbox]
+  E --> F([Employee: open link, answer])
+  F --> G[Security node: redact PII]
+  G --> H[Agent: validate evidence + confidence]
+  H --> I{Confident?}
+  I -- "yes" --> J[Auto-approve evidence]
+  I -- "no / weak" --> K[Follow-up prompt OR manager review queue]
+  K --> F
+  J --> L([Manager: open results])
+  K --> L
+  L --> M[Agent: generate review draft<br/>consent-gated evidence only]
+  M --> N[Agent: fairness & grounding check]
+  N --> O{Manager approves / edits?}
+  O -- edit --> M
+  O -- approve --> P[Export Markdown + audit log]
+```
+
+The standalone **Add evidence directly** path (U7) reuses the same
+security→validate→confidence-route activity (G→H→I) without a questionnaire.
+
 ---
 
 ## 2. Agent workflows (ADK 2.0 graphs)
