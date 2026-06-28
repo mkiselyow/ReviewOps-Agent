@@ -35,6 +35,21 @@ describe("review generation", () => {
     expect(r.output.warnings.some((w) => w.type === "unsupported_claim")).toBe(true);
   });
 
+  it("recognizes UUID-style evidence citations (not just slug ids)", async () => {
+    const uuid = "e1fdc75e-4fe6-4e4e-8985-f2190a27d024";
+    const markdown = [
+      "## Achievements",
+      `- Shipped the billing refactor [${uuid}]`,
+      "",
+      "## Evidence References",
+      `- [${uuid}] Shipped the billing refactor`,
+    ].join("\n");
+    const r = await runFairnessGroundingAgent({ markdown, evidenceIds: [uuid] });
+    expect(r.output.unsupportedClaims).toBe(0);
+    expect(r.output.citedEvidence).toContain(uuid);
+    expect(r.output.grounded).toBe(true);
+  });
+
   it("consent gate: only allow_for_review evidence reaches the review context", () => {
     // Add a non-consented evidence item for Anna in the same period.
     createEvidenceItem({

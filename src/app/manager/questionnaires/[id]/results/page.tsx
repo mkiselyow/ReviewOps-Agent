@@ -98,7 +98,7 @@ export default async function ResultsPage({
           <p className="small" style={{ marginTop: 10 }}>
             <Link
               className="btn btn-ghost"
-              href={`/manager/reviews/${r.respondentId}/new`}
+              href={`/manager/reviews/new/${r.respondentId}`}
             >
               Generate review draft
             </Link>

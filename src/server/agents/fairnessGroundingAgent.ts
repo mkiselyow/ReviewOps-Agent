@@ -31,7 +31,8 @@ export const fairnessOutputSchema = z.object({
 });
 export type FairnessOutput = z.infer<typeof fairnessOutputSchema>;
 
-const CITATION_RE = /\[([a-z0-9_]+)\]/gi;
+// Evidence ids may be slugs (ev_anna_1) or UUIDs (with hyphens).
+const CITATION_RE = /\[([a-z0-9_-]+)\]/gi;
 const VAGUE_PRAISE_RE = /\b(great|excellent|amazing|awesome|fantastic|rockstar|10x|good job|very good)\b/i;
 const VAGUE_CRITICISM_RE = /\b(not good|bad|weak|poor|disappointing|needs improvement)\b/i;
 // Whole-word matches only, so e.g. "pipeline" does not trip "pip" and

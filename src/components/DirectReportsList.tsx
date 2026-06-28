@@ -21,7 +21,7 @@ export default function DirectReportsList({ reports }: { reports: Report[] }) {
             <td>{r.displayName}</td>
             <td className="muted">{r.roleTitle}</td>
             <td style={{ textAlign: "right" }}>
-              <Link className="btn btn-ghost" href={`/manager/reviews/${r.id}/new`}>
+              <Link className="btn btn-ghost" href={`/manager/reviews/new/${r.id}`}>
                 Generate review
               </Link>
             </td>
