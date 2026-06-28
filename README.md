@@ -68,6 +68,9 @@ ORM · Zod 4 · Vitest.
 
 ## Setup
 
+> **Full step-by-step local runbook (run frontend + agent service + click the
+> whole flow): [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).**
+
 Requires Node.js 24+ and (for the agent service) Python 3.11–3.13 + [uv](https://docs.astral.sh/uv/).
 
 **1) Agent service** (Python ADK 2.0) — needs a Gemini API key with credits:

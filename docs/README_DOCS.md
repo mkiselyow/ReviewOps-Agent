@@ -14,6 +14,8 @@ Documentation for the ReviewOps Agent.
   (Mermaid diagrams), data flow, tools, data model (§5), access control/tokens
   (§6), privacy pipeline (§7), HITL (§8), testing (§9), and how the Google 2026
   *Security & Evaluation* and *Agent Skills* whitepapers are applied. **Start here.**
+- **`LOCAL_DEV.md`** — local dev runbook: start the frontend + agent service and
+  click the whole flow. **Read this to run the project.**
 - `PROJECT_SPEC.md` — product definition, scope, users, demo scenario, user stories.
 - `PROMPT_FOR_CODING_AGENT.md` — original scaffolding prompt (TS MVP, historical).
 - `DEMO_SCRIPT.md` — video/demo walkthrough for Kaggle capstone.
