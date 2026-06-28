@@ -1,6 +1,6 @@
 /**
  * HRIS tool facade. Agents read team/role/goal data only through these tools,
- * never the database directly (see docs/ARCHITECTURE_AND_SECURITY.md §6).
+ * never the database directly (see docs/ARCHITECTURE.md §3).
  */
 export {
   getDirectReports,

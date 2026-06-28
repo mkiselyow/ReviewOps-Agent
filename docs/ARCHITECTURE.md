@@ -1,8 +1,9 @@
 # ReviewOps Agent — Architecture (Hybrid)
 
-> **This supersedes the original all-TypeScript design in
-> `ARCHITECTURE_AND_SECURITY.md`.** The agent brain has moved to a **Python ADK
-> 2.0 service**; the Next.js app is now the frontend. See "Why hybrid" below.
+> **Authoritative architecture doc.** The agent brain runs in a **Python ADK 2.0
+> service**; the Next.js app is the frontend. This consolidates the original
+> all-TypeScript design notes (the former `ARCHITECTURE_AND_SECURITY.md`, now
+> retired — see §5–9). See "Why hybrid" below.
 
 ReviewOps Agent is a permission-aware, evidence-grounded assistant for
 engineering managers. It generates questionnaires, collects employee-approved
@@ -189,7 +190,71 @@ work lives in `scripts/`, not prose rules.
 
 ---
 
-## 5. References
+## 5. Data model (SQLite / Drizzle)
+
+Source of truth: `src/server/db/schema.ts`. Tables:
+
+| Table | Key fields | Notes |
+| --- | --- | --- |
+| `users` | email, display_name, role_title, **manager_id**, is_hr_admin | mock HRIS is the source of truth for identity/manager/role |
+| `goals` | employee_id, title, period, status | official goals per period |
+| `questionnaires` | created_by_manager_id, period, **privacy_mode**, status | statuses: draft→approved→sent→closed→archived; privacy modes: `named_review_evidence` (MVP), `anonymous_team_pulse`, `confidential_hr_only` |
+| `questions` | questionnaire_id, position, question_type, required, explanation | types: short_text, long_text, single_choice, multi_choice, rating, evidence_link, attachment |
+| `survey_assignments` | questionnaire_id, respondent_id, **token_hash**, expires_at, status | statuses: pending, opened, submitted, expired, revoked |
+| `responses` | assignment_id, question_id, answer_text, **visibility** | visibility: private_draft, share_with_manager, **allow_for_review**, anonymous_aggregate |
+| `evidence_items` | employee_id, source_type, summary, impact, period, company_value, goal_id, quality_score, **confidence**, visibility | **planned: add `status`** (draft/pending_review/approved/rejected/auto_approved) for the standalone evidence flow + confidence-gated routing |
+| `attachments` | evidence_id, file_path, pii_scan_status | metadata-only / local upload in MVP |
+| `review_drafts` | employee_id, manager_id, period, draft_markdown, grounding_report_json, fairness_report_json, status | statuses: draft, needs_revision, approved, exported |
+| `outbox` | questionnaire_id, respondent_id, assignment_id, link | mock delivery (stands in for Slack/email) |
+| `audit_logs` | actor_id, action, resource_type, resource_id, metadata_json | sensitive actions incl. denied access |
+
+## 6. Access control & token design
+
+Enforced in TypeScript **before** any data reaches the agent service
+(`src/server/auth/`). Never rely on an LLM prompt for security.
+
+- **Manager scope:** `canManagerViewEmployee(managerId, employee) = employee.manager_id === managerId`. Outside-team access → `403`; unauthenticated → `401`.
+- **Employee scope:** an employee can access only their own assignment/evidence.
+- **Token scope (`src/server/utils/crypto.ts`):** survey links use `crypto` random tokens; only the **SHA-256 hash** is stored on the assignment. A token maps to exactly one assignment, has an expiry + revoked state, and cannot reach manager results. **Respondent identity is derived from the token**, never from request input.
+- **Consent gate:** evidence inherits the response's `visibility`; only `allow_for_review` evidence can ground a review draft (`getEvidenceForReview`).
+
+## 7. Personal data handling & privacy pipeline
+
+The mock HRIS is the source of truth for identity/manager/role/goals; ReviewOps
+stores only questionnaires, responses, evidence, attachments, scores, review
+drafts, approval state, and audit logs. Before anything reaches the model:
+
+```
+raw data → permission filter → data minimization → PII redaction
+         → evidence-card normalization → model call
+```
+
+The privacy filter is **deterministic** (a security control, never the model)
+and logs the *categories* removed, not the values. In the hybrid, the TS app
+runs the filter before the REST call; the Python service also has a pre-LLM
+security node (PII + prompt-injection screening) as defense-in-depth.
+
+## 8. Human-in-the-loop
+
+Approval is required before: sending questionnaires, closing them, generating
+final review drafts, approving drafts, and exporting. This is the whitepaper's
+**"Vibe Diff"** logic review — show the human plain-language intent→action before
+consent. The standalone evidence flow adds a manager **approve/reject** gate for
+low-confidence evidence.
+
+## 9. Testing & verification
+
+- **TS Vitest** (`tests/`): manager cannot view outside-team employee; token
+  hash stored (not raw); expired token denied; cross-assignment isolation;
+  questionnaire schema valid; sensitive question rejected; vague answer →
+  follow-up; review cites evidence; unsupported claim flagged; consent gate.
+- **Python agent service:** `agents-cli eval` golden datasets + LLM-as-judge +
+  trajectory inspection (see §4.2). `agents-cli playground` / REST for manual
+  validation.
+
+## 10. References
 - Google (May 2026), *Vibe Coding Agent Security and Evaluation*.
 - Google (May 2026), *Agent Skills*.
 - ADK docs: https://adk.dev · agents-cli: https://google.github.io/agents-cli/
+- Full original design notes (now merged here): see git history of
+  `docs/ARCHITECTURE_AND_SECURITY.md` (retired).

@@ -3,7 +3,7 @@
  *
  * These are PURE functions that operate on plain objects. All
  * permission-sensitive decisions in the app go through this module BEFORE any
- * data reaches an agent or the model (see docs/ARCHITECTURE_AND_SECURITY.md §7).
+ * data reaches an agent or the model (see docs/ARCHITECTURE.md §6).
  *
  * Security rule: never rely on an LLM prompt for access control.
  */

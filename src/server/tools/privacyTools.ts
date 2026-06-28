@@ -1,5 +1,5 @@
 /**
- * Privacy tools (see docs/ARCHITECTURE_AND_SECURITY.md §5.8 / §9).
+ * Privacy tools (see docs/ARCHITECTURE.md §4.1 / §7).
  *
  * Converts raw internal data into minimized, PII-redacted model context.
  * Rule: log the CATEGORIES removed, never the removed values.

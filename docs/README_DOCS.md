@@ -4,19 +4,18 @@ Documentation for the ReviewOps Agent.
 
 > **Architecture update:** the project is now a **hybrid** — a TypeScript
 > Next.js frontend + a **Python ADK 2.0 agent service**. See **`ARCHITECTURE.md`**
-> (authoritative, with diagrams). The older `ARCHITECTURE_AND_SECURITY.md`
-> describes the original all-TypeScript design and is kept for the full data
-> model / RBAC / token / privacy detail (still valid for the app layer).
+> (authoritative, with diagrams). It now also contains the full data model,
+> access control, token design, privacy pipeline, HITL, and testing detail
+> (merged from the retired `ARCHITECTURE_AND_SECURITY.md`).
 
 ## Files
 
 - **`ARCHITECTURE.md`** — current hybrid architecture, agent-workflow graphs
-  (Mermaid diagrams), data flow, tools, and how the Google 2026 *Security &
-  Evaluation* and *Agent Skills* whitepapers are applied. **Start here.**
+  (Mermaid diagrams), data flow, tools, data model (§5), access control/tokens
+  (§6), privacy pipeline (§7), HITL (§8), testing (§9), and how the Google 2026
+  *Security & Evaluation* and *Agent Skills* whitepapers are applied. **Start here.**
 - `PROJECT_SPEC.md` — product definition, scope, users, demo scenario, user stories.
-- `ARCHITECTURE_AND_SECURITY.md` — original all-TypeScript design + full data
-  model, RBAC, token design, privacy pipeline.
-- `PROMPT_FOR_CODING_AGENT.md` — original scaffolding prompt (TS MVP).
+- `PROMPT_FOR_CODING_AGENT.md` — original scaffolding prompt (TS MVP, historical).
 - `DEMO_SCRIPT.md` — video/demo walkthrough for Kaggle capstone.
 - `EVALUATION_PLAN.md` — evaluation plan (to be refreshed to the 7-dimension
   framework + agents-cli eval / LLM-as-judge / trajectory inspection).

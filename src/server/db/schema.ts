@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 
 /**
- * SQLite schema for ReviewOps Agent (see docs/ARCHITECTURE_AND_SECURITY.md §4).
+ * SQLite schema for ReviewOps Agent (see docs/ARCHITECTURE.md §5).
  *
  * Conventions:
  * - ids are UUID strings

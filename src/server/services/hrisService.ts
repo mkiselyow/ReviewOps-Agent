@@ -7,7 +7,7 @@ import { users, goals, type User, type Goal } from "../db/schema";
 /**
  * Mock HRIS connector. The mock HRIS is the source of truth for identity,
  * manager relationships, roles, teams, and official goals
- * (see docs/ARCHITECTURE_AND_SECURITY.md §9).
+ * (see docs/ARCHITECTURE.md §7).
  */
 
 export function getUserById(id: string): User | null {

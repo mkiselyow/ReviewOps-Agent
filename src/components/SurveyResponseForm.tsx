@@ -60,7 +60,11 @@ export default function SurveyResponseForm({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Submit failed");
       const byQ: Record<string, Validation> = {};
-      for (const v of data.validations) byQ[v.questionId] = v.validation;
+
+      for (const v of data.validations) {
+        console.log(v.validation)
+        byQ[v.questionId] = v.validation;
+      }
       setValidations(byQ);
       setSubmitted(true);
     } catch (e) {

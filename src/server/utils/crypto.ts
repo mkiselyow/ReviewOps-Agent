@@ -1,7 +1,7 @@
 import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 
 /**
- * Survey token helpers (see docs/ARCHITECTURE_AND_SECURITY.md §8).
+ * Survey token helpers (see docs/ARCHITECTURE.md §6).
  *
  * - tokens are cryptographically random
  * - only the SHA-256 hash is persisted on the assignment

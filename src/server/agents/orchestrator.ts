@@ -28,7 +28,7 @@ const LONG_FORM_TYPES = new Set(["long_text", "short_text", "evidence_link"]);
 /**
  * Orchestrator: routes each workflow through the specialized agents and the
  * permission-checked services, and combines their outputs (see
- * docs/ARCHITECTURE_AND_SECURITY.md §5.1).
+ * docs/ARCHITECTURE.md §2).
  */
 
 // --- 1. Questionnaire generation + safety -----------------------------------
