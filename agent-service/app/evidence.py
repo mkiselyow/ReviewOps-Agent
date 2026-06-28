@@ -115,13 +115,17 @@ async def finalize_node(node_input: Any):
     val = EvidenceValidation(**data)
     if val.confidence >= CONFIDENCE_THRESHOLD and not val.is_weak:
         status = "auto_approved"
-        reason = f"confidence {val.confidence:.2f} >= {CONFIDENCE_THRESHOLD} and not weak"
-    else:
-        status = "pending_review"
         reason = (
-            f"confidence {val.confidence:.2f} < {CONFIDENCE_THRESHOLD} or weak "
-            f"-> manager review"
+            f"confidence {val.confidence:.2f} >= {CONFIDENCE_THRESHOLD} and not weak"
         )
+    else:
+        why = []
+        if val.confidence < CONFIDENCE_THRESHOLD:
+            why.append(f"confidence {val.confidence:.2f} < {CONFIDENCE_THRESHOLD}")
+        if val.is_weak:
+            why.append("weak evidence")
+        status = "pending_review"
+        reason = " and ".join(why) + " -> manager review"
     mapped = EvidenceMapped(
         validation=val,
         company_value=val.mapped_value,
