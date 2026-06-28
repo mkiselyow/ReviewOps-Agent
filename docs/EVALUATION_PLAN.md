@@ -22,6 +22,12 @@ most about:
 ### 0.2 Methods (how to evaluate)
 - **Automated functional testing** — TS Vitest (§2); Pydantic schema validation in the service.
 - **LLM-as-judge** — `agents-cli eval` scores outputs against rubrics (§4); swap reference/actual positions to remove ordering bias; calibrate to ~90% human agreement.
+  - Suite authored: `agent-service/tests/eval/datasets/reviewops-questionnaire.json`
+    (golden cases incl. a sensitive-topic safety probe) + a tailored
+    `questionnaire_quality` rubric in `eval_config.yaml`.
+  - Run: `agents-cli eval run --dataset tests/eval/datasets/reviewops-questionnaire.json`.
+    **Requires GCP** (Vertex AI Eval Service + GCS): a project with Vertex enabled
+    and `gcloud auth application-default login` — part of the deploy/GCP setup.
 - **Trajectory inspection** — OpenTelemetry spans (`agent.session/think/tool`); ADK eval trajectory modes **EXACT / IN_ORDER / ANY_ORDER**.
 - **Security & safety eval** — adversarial/protected-topic probes (§2.4); secrets-scan + SAST (Semgrep) in CI.
 - **Human review** — calibrate the judges; the manager approval gate is the ground-truth signal.
