@@ -6,9 +6,14 @@ collect employee-approved success evidence, validate evidence quality, and
 generate interim or annual review drafts — always with human approval and never
 sending raw HR data to the model.
 
-> Kaggle AI Agents capstone — track: **Agents for Business**.
-> All data is synthetic. The app runs fully offline with deterministic mock
-> agents; configure a Gemini key to use real models via Google ADK.
+> Kaggle AI Agents capstone — track: **Agents for Business**. All data is synthetic.
+>
+> **Architecture:** hybrid — a TypeScript **Next.js frontend** + a **Python ADK
+> 2.0 agent service** (graph `Workflow`s, Gemini; requires an API key). The
+> agent brain has moved out of the TS app into `agent-service/`. See
+> **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**. Sections below that describe
+> in-process TS agents / offline mock reflect the original MVP and are being
+> migrated.
 
 ---
 
