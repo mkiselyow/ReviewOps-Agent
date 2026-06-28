@@ -6,7 +6,7 @@ import {
   responses,
   type EvidenceItem,
 } from "../db/schema";
-import { getUserById } from "./hrisService";
+import { getUserById, getDirectReports } from "./hrisService";
 import { assertManagerCanViewEmployee } from "../auth/permissions";
 import { isoNow } from "../utils/dates";
 
@@ -22,6 +22,7 @@ export type EvidenceInput = {
   qualityScore?: number | null;
   confidence?: number | null;
   visibility?: string;
+  status?: string;
 };
 
 export function createEvidenceItem(input: EvidenceInput): EvidenceItem {
@@ -39,6 +40,7 @@ export function createEvidenceItem(input: EvidenceInput): EvidenceItem {
       qualityScore: input.qualityScore ?? null,
       confidence: input.confidence ?? null,
       visibility: input.visibility ?? "share_with_manager",
+      status: input.status ?? "approved",
     })
     .returning()
     .get();
@@ -145,9 +147,57 @@ export function getEvidenceForReview(
   period?: string,
 ): EvidenceItem[] {
   assertManagerCanViewEmployee(managerId, getUserById(employeeId));
+  // Consent gate + only approved/auto-approved evidence may ground a review
+  // (pending_review / rejected evidence is excluded until a manager approves).
   return listEvidence(employeeId, period).filter(
-    (e) => e.visibility === "allow_for_review",
+    (e) =>
+      e.visibility === "allow_for_review" &&
+      (e.status === "approved" || e.status === "auto_approved"),
   );
+}
+
+/** Pending-review evidence across a manager's direct reports (the review queue). */
+export function getPendingEvidenceForManager(
+  managerId: string,
+): (EvidenceItem & { employeeName: string })[] {
+  const reports = getDirectReports(managerId);
+  const ids = reports.map((r) => r.id);
+  if (ids.length === 0) return [];
+  return db
+    .select()
+    .from(evidenceItems)
+    .where(
+      and(
+        inArray(evidenceItems.employeeId, ids),
+        eq(evidenceItems.status, "pending_review"),
+      ),
+    )
+    .all()
+    .map((e) => ({
+      ...e,
+      employeeName: reports.find((r) => r.id === e.employeeId)?.displayName ?? e.employeeId,
+    }));
+}
+
+/** Manager approve/reject of a pending evidence item (permission-checked). */
+export function setEvidenceStatus(
+  managerId: string,
+  evidenceId: string,
+  status: "approved" | "rejected",
+): EvidenceItem {
+  const ev = db.select().from(evidenceItems).where(eq(evidenceItems.id, evidenceId)).get();
+  assertManagerCanViewEmployee(managerId, ev ? getUserById(ev.employeeId) : null);
+  return db
+    .update(evidenceItems)
+    .set({ status, updatedAt: isoNow() })
+    .where(eq(evidenceItems.id, evidenceId))
+    .returning()
+    .get();
+}
+
+/** An employee's own evidence (all statuses) — for the employee dashboard. */
+export function getOwnEvidence(employeeId: string): EvidenceItem[] {
+  return listEvidence(employeeId);
 }
 
 export function getResponseById(responseId: string) {

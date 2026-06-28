@@ -77,6 +77,14 @@ export const EVIDENCE_SOURCE_TYPES = [
   "mock_lattice",
 ] as const;
 
+export const EVIDENCE_STATUSES = [
+  "draft",
+  "pending_review",
+  "approved",
+  "rejected",
+  "auto_approved",
+] as const;
+
 export const REVIEW_STATUSES = [
   "draft",
   "needs_revision",
@@ -184,6 +192,9 @@ export const evidenceItems = sqliteTable("evidence_items", {
   qualityScore: real("quality_score"),
   confidence: real("confidence"),
   visibility: text("visibility").notNull().default("share_with_manager"),
+  // Review-routing state: high-confidence -> auto_approved; low -> pending_review
+  // (manager approve/reject). Existing/seed evidence defaults to approved.
+  status: text("status").notNull().default("approved"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

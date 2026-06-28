@@ -1,0 +1,1 @@
+ALTER TABLE `evidence_items` ADD `status` text DEFAULT 'approved' NOT NULL;

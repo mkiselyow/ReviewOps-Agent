@@ -13,7 +13,11 @@ import {
   getAssignmentByToken,
   type SubmittedAnswer,
 } from "../services/surveyService";
-import { upsertEvidenceFromResponse } from "../services/evidenceService";
+import {
+  upsertEvidenceFromResponse,
+  createEvidenceItem,
+} from "../services/evidenceService";
+import { validateAndRoute } from "./evidenceValidation";
 import { generateReviewContext, saveReviewDraft } from "../services/reviewService";
 import { runQuestionnaireAgent } from "./questionnaireAgent";
 import { runQuestionnaireSafetyAgent, type SafetyOutput } from "./questionnaireSafetyAgent";
@@ -192,63 +196,14 @@ export async function orchestrateResponseSubmission(
     if (!LONG_FORM_TYPES.has(qType) || answerText.trim().length === 0) continue;
     const questionText = textById.get(resp.questionId) ?? "";
 
-    let summary: string;
-    let impact: string | null;
-    let mappedValue: string | null;
-    let qualityScore: number;
-    let confidence: number;
-    let isWeak: boolean;
-    let followUpQuestion: string | null;
-    let missingFields: string[];
-    let companyValue: string | null;
-    let goalId: string | null;
-
-    if (usingAgentService()) {
-      // Python service runs evidence validator -> values mapper -> routing.
-      const ev = await validateEvidence({
-        answerText,
-        questionText,
-        period,
-        roleExpectations,
-        companyValues,
-        goals: goals.map((g) => g.title),
-      });
-      summary = ev.summary;
-      impact = ev.impact;
-      mappedValue = ev.mappedValue;
-      qualityScore = ev.qualityScore;
-      confidence = ev.confidence;
-      isWeak = ev.isWeak;
-      followUpQuestion = ev.followUpQuestion;
-      missingFields = ev.missingFields;
-      companyValue = ev.companyValue ?? ev.mappedValue;
-      goalId = goals.find((g) => g.title === ev.goal)?.id ?? null;
-    } else {
-      const validation = await runEvidenceValidatorAgent({
-        answerText,
-        questionText,
-        period,
-        roleExpectations,
-        companyValues,
-      });
-      const mapped = await runValuesMapperAgent({
-        summary: validation.output.summary,
-        impact: validation.output.impact,
-        companyValues,
-        goals,
-        roleExpectations,
-      });
-      summary = validation.output.summary;
-      impact = validation.output.impact;
-      mappedValue = validation.output.mappedValue;
-      qualityScore = validation.output.qualityScore;
-      confidence = mapped.output.confidence;
-      isWeak = validation.output.isWeak;
-      followUpQuestion = validation.output.followUpQuestion;
-      missingFields = validation.output.missingFields;
-      companyValue = mapped.output.companyValue ?? validation.output.mappedValue;
-      goalId = mapped.output.goalId;
-    }
+    const v = await validateAndRoute({
+      answerText,
+      questionText,
+      period,
+      roleExpectations,
+      companyValues,
+      goals,
+    });
 
     // Consent carries through: the evidence inherits the response visibility,
     // so only answers the employee allowed for review become review-usable.
@@ -256,20 +211,28 @@ export async function orchestrateResponseSubmission(
       employeeId: assignment.respondentId,
       sourceType: "questionnaire_response",
       sourceId: resp.id,
-      summary,
-      impact,
+      summary: v.summary,
+      impact: v.impact,
       period,
-      companyValue,
-      goalId,
-      qualityScore,
-      confidence,
+      companyValue: v.companyValue,
+      goalId: v.goalId,
+      qualityScore: v.qualityScore,
+      confidence: v.confidence,
       visibility: resp.visibility,
     });
 
     validations.push({
       questionId: resp.questionId,
       responseId: resp.id,
-      validation: { summary, impact, mappedValue, qualityScore, missingFields, isWeak, followUpQuestion },
+      validation: {
+        summary: v.summary,
+        impact: v.impact,
+        mappedValue: v.mappedValue,
+        qualityScore: v.qualityScore,
+        missingFields: v.missingFields,
+        isWeak: v.isWeak,
+        followUpQuestion: v.followUpQuestion,
+      },
     });
   }
 
@@ -375,3 +338,48 @@ type FairnessData = {
   unsupportedClaims: number;
   citedEvidence: string[];
 };
+
+// --- 4. Standalone employee evidence submission -----------------------------
+
+/**
+ * An employee submits a piece of evidence directly (not via a questionnaire).
+ * The validator scores it and the confidence gate routes it: high-confidence →
+ * auto-approved; low → pending manager review.
+ */
+export async function orchestrateEvidenceSubmission(
+  employeeId: string,
+  input: { text: string; period: string; visibility?: string },
+) {
+  const employee = getEmployeeProfile(employeeId);
+  const roleExpectations = employee ? getRoleExpectations(employee.roleTitle) : [];
+  const companyValues = getCompanyValueNames();
+  const goals = getEmployeeGoals(employeeId, input.period).map((g) => ({
+    id: g.id,
+    title: g.title,
+  }));
+
+  const v = await validateAndRoute({
+    answerText: input.text,
+    questionText: "Self-submitted success evidence",
+    period: input.period,
+    roleExpectations,
+    companyValues,
+    goals,
+  });
+
+  const evidence = createEvidenceItem({
+    employeeId,
+    sourceType: "manual_upload",
+    summary: v.summary,
+    impact: v.impact,
+    period: input.period,
+    companyValue: v.companyValue,
+    goalId: v.goalId,
+    qualityScore: v.qualityScore,
+    confidence: v.confidence,
+    visibility: input.visibility ?? "allow_for_review",
+    status: v.status,
+  });
+
+  return { evidence, validation: v };
+}

@@ -9,6 +9,8 @@ export type AuditAction =
   | "assignments_created"
   | "response_submitted"
   | "evidence_validated"
+  | "evidence_submitted"
+  | "evidence_reviewed"
   | "review_draft_generated"
   | "review_approved"
   | "review_exported"

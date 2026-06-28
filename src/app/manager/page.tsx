@@ -24,20 +24,7 @@ export default async function ManagerDashboard() {
   // manager tools (the "+ Create questionnaire" button, results, etc.).
   const userIsManager = reports.length > 0;
 
-  if (!userIsManager) {
-    return (
-      <Layout user={user}>
-        <div className="card">
-          <h2>Welcome, {user.displayName}</h2>
-          <p className="muted">
-            You don&apos;t manage any direct reports, so the manager tools
-            aren&apos;t available. Employees contribute via personal survey links
-            (and, soon, a direct evidence form).
-          </p>
-        </div>
-      </Layout>
-    );
-  }
+  if (!userIsManager) redirect("/employee");
 
   const questionnaires = listQuestionnairesByManager(user.id);
 
@@ -45,9 +32,14 @@ export default async function ManagerDashboard() {
     <Layout user={user}>
       <div className="spread" style={{ marginBottom: 16 }}>
         <h1 style={{ margin: 0, fontSize: 22 }}>Manager dashboard</h1>
-        <Link className="btn" href="/manager/questionnaires/new">
-          + Create questionnaire
-        </Link>
+        <div className="row">
+          <Link className="btn btn-ghost" href="/manager/evidence-queue">
+            Evidence review queue
+          </Link>
+          <Link className="btn" href="/manager/questionnaires/new">
+            + Create questionnaire
+          </Link>
+        </div>
       </div>
 
       <div className="card">

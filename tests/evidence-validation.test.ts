@@ -12,7 +12,10 @@ import {
 import {
   getEvidenceForReview,
   getEmployeeEvidence,
+  getPendingEvidenceForManager,
+  setEvidenceStatus,
 } from "../src/server/services/evidenceService";
+import { orchestrateEvidenceSubmission } from "../src/server/agents/orchestrator";
 
 const WEAK = "I helped with frontend.";
 const STRONG =
@@ -97,5 +100,46 @@ describe("evidence validation", () => {
     );
     expect(after.length).toBe(1);
     expect(after[0].qualityScore ?? 0).toBeGreaterThanOrEqual(0.6);
+  });
+
+  it("standalone evidence: weak -> pending_review -> manager approves -> review-usable (#16)", async () => {
+    const r = await orchestrateEvidenceSubmission(USERS.anna, {
+      text: WEAK,
+      period: "2026-Q2",
+    });
+    expect(r.evidence.status).toBe("pending_review");
+
+    // shows in Maria's review queue
+    expect(
+      getPendingEvidenceForManager(USERS.maria).some((e) => e.id === r.evidence.id),
+    ).toBe(true);
+
+    // not yet usable for a review draft
+    expect(
+      getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2").some(
+        (e) => e.id === r.evidence.id,
+      ),
+    ).toBe(false);
+
+    // manager approves -> usable
+    setEvidenceStatus(USERS.maria, r.evidence.id, "approved");
+    expect(
+      getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2").some(
+        (e) => e.id === r.evidence.id,
+      ),
+    ).toBe(true);
+  });
+
+  it("standalone evidence: strong -> auto_approved -> immediately review-usable", async () => {
+    const r = await orchestrateEvidenceSubmission(USERS.anna, {
+      text: STRONG,
+      period: "2026-Q2",
+    });
+    expect(r.evidence.status).toBe("auto_approved");
+    expect(
+      getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2").some(
+        (e) => e.id === r.evidence.id,
+      ),
+    ).toBe(true);
   });
 });
