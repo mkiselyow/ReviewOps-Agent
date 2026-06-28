@@ -15,13 +15,16 @@ import * as schema from "./schema";
 function resolveDbPath(): string {
   const url = process.env.DATABASE_URL ?? "file:./data/reviewops.sqlite";
   const raw = url.startsWith("file:") ? url.slice("file:".length) : url;
+  if (raw === ":memory:") return ":memory:";
   return resolve(process.cwd(), raw);
 }
 
 function createDb() {
   const dbPath = resolveDbPath();
-  const dir = dirname(dbPath);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  if (dbPath !== ":memory:") {
+    const dir = dirname(dbPath);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  }
 
   const sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");

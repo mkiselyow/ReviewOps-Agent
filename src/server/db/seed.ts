@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { db } from "./index";
 import {
   users,
@@ -56,14 +57,8 @@ type SeedEvidence = {
   visibility: string;
 };
 
-function main() {
-  const seedUsers = readJson<SeedUser[]>("data/seed/employees.json");
-  const seedGoals = readJson<SeedGoal[]>("data/seed/goals.json");
-  const seedEvidence = readJson<SeedEvidence[]>("data/seed/sample-evidence.json");
-
-  console.log("Seeding ReviewOps Agent database...");
-
-  // Clear in dependency-safe order (idempotent reseed).
+/** Delete all rows in dependency-safe order. */
+export function clearDatabase(): void {
   db.delete(attachments).run();
   db.delete(reviewDrafts).run();
   db.delete(outbox).run();
@@ -75,16 +70,18 @@ function main() {
   db.delete(goals).run();
   db.delete(auditLogs).run();
   db.delete(users).run();
+}
 
+/** Reset and load the synthetic demo data. Returns the counts inserted. */
+export function seedDatabase(): { users: number; goals: number; evidence: number } {
+  const seedUsers = readJson<SeedUser[]>("data/seed/employees.json");
+  const seedGoals = readJson<SeedGoal[]>("data/seed/goals.json");
+  const seedEvidence = readJson<SeedEvidence[]>("data/seed/sample-evidence.json");
+
+  clearDatabase();
   db.insert(users).values(seedUsers).run();
-  console.log(`  users:    ${seedUsers.length}`);
-
   db.insert(goals).values(seedGoals).run();
-  console.log(`  goals:    ${seedGoals.length}`);
-
   db.insert(evidenceItems).values(seedEvidence).run();
-  console.log(`  evidence: ${seedEvidence.length}`);
-
   db.insert(auditLogs)
     .values({
       actorId: "system",
@@ -99,7 +96,18 @@ function main() {
     })
     .run();
 
-  console.log("Seed complete.");
+  return { users: seedUsers.length, goals: seedGoals.length, evidence: seedEvidence.length };
 }
 
-main();
+// Run directly via `npm run seed` (but not when imported by tests).
+const isDirectRun =
+  Boolean(process.argv[1]) &&
+  fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+if (isDirectRun) {
+  console.log("Seeding ReviewOps Agent database...");
+  const counts = seedDatabase();
+  console.log(`  users:    ${counts.users}`);
+  console.log(`  goals:    ${counts.goals}`);
+  console.log(`  evidence: ${counts.evidence}`);
+  console.log("Seed complete.");
+}

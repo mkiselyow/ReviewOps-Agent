@@ -6,6 +6,12 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.ts"],
     globals: true,
+    setupFiles: ["tests/setup.ts"],
+    env: {
+      DATABASE_URL: ":memory:",
+      USE_MOCK_MODEL: "true",
+      TOKEN_EXPIRY_HOURS: "168",
+    },
   },
   resolve: {
     alias: {

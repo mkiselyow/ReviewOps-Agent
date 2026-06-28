@@ -34,7 +34,9 @@ export type FairnessOutput = z.infer<typeof fairnessOutputSchema>;
 const CITATION_RE = /\[([a-z0-9_]+)\]/gi;
 const VAGUE_PRAISE_RE = /\b(great|excellent|amazing|awesome|fantastic|rockstar|10x|good job|very good)\b/i;
 const VAGUE_CRITICISM_RE = /\b(not good|bad|weak|poor|disappointing|needs improvement)\b/i;
-const COMP_RE = /\b(promot|promotion|raise|bonus|salary|compensation|rank|ranking|pip|fire|terminat)/i;
+// Whole-word matches only, so e.g. "pipeline" does not trip "pip" and
+// "raised the bar" does not trip compensation language.
+const COMP_RE = /\b(promotion|promote|promoted|bonus|salary|compensation|ranking|rank|pip|demotion|demote|termination|terminate|fired)\b/i;
 
 function sectionLines(markdown: string, heading: string): string[] {
   const lines = markdown.split("\n");
@@ -60,11 +62,12 @@ function mockFairness(input: FairnessInput): FairnessOutput {
     if (input.evidenceIds.includes(m[1])) cited.add(m[1]);
   }
 
-  // Unsupported claims: claim bullets in Achievements / Examples without a citation.
-  const claimLines = [
-    ...sectionLines(input.markdown, "Achievements"),
-    ...sectionLines(input.markdown, "Evidence-Backed Examples"),
-  ].filter((l) => /^[-*]\s+\S/.test(l) && !/_no /i.test(l));
+  // Unsupported claims: the Achievements section is the canonical claim list;
+  // each achievement bullet must carry an evidence citation. (Examples are
+  // elaborations of already-cited achievements.)
+  const claimLines = sectionLines(input.markdown, "Achievements").filter(
+    (l) => /^[-*]\s+\S/.test(l) && !/_no /i.test(l),
+  );
 
   let unsupported = 0;
   for (const line of claimLines) {
