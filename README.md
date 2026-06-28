@@ -9,11 +9,9 @@ sending raw HR data to the model.
 > Kaggle AI Agents capstone — track: **Agents for Business**. All data is synthetic.
 >
 > **Architecture:** hybrid — a TypeScript **Next.js frontend** + a **Python ADK
-> 2.0 agent service** (graph `Workflow`s, Gemini; requires an API key). The
-> agent brain has moved out of the TS app into `agent-service/`. See
-> **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**. Sections below that describe
-> in-process TS agents / offline mock reflect the original MVP and are being
-> migrated.
+> 2.0 agent service** (graph `Workflow`s, Gemini; requires an API key with
+> credits). The agent brain lives in `agent-service/`; the app calls it over
+> REST. See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ---
 
@@ -41,61 +39,68 @@ privacy filtering, and human-in-the-loop approval:
 8. Flag unsupported claims, vague feedback, recency bias, and sensitive data.
 9. Require manager approval before export.
 
-## Agent architecture
+## Agent architecture (hybrid)
 
 ```
-Next.js UI / Route Handlers
-  → Auth + RBAC + Permission filter   (TypeScript, before any model call)
-  → Orchestrator
-      ├─ Questionnaire Agent          generate 5–7 work-evidence questions
-      ├─ Questionnaire Safety Agent   block sensitive / leading questions
-      ├─ Evidence Validator Agent     score answers, request follow-ups
-      ├─ Values Mapper Agent          map evidence → value / goal / expectation
-      ├─ Privacy Filter Agent         minimize + redact PII (deterministic)
-      ├─ Review Draft Agent           grounded Markdown draft (cites evidence)
-      └─ Fairness & Grounding Agent   flag unsupported / vague / sensitive
-  → Services (hris, survey, evidence, review, outbox, audit, export)
-  → Tools (hris, survey, evidence, review, privacy)
-  → SQLite (Drizzle) + local files + mock HRIS
+Next.js app (TypeScript)                Python ADK 2.0 agent service (FastAPI)
+  UI / Route handlers                     graph Workflows:
+  → Auth + RBAC + permissions               questionnaire → safety
+    (before any model call)                 security → validator → finalize (route)
+  → Orchestrator ── REST ──▶               privacy → review_draft → fairness
+    (agentClient)                         + Gemini (API key); OpenTelemetry
+  → Services + privacy filter
+  → SQLite (Drizzle) + mock HRIS
 ```
 
-Each agent has a Zod input/output schema and a **deterministic mock**. The
-`modelProvider` calls Google ADK (`LlmAgent` + `Gemini`) when a key is
-configured, validates the JSON against the schema, and falls back to the mock on
-any error — so the app is always runnable. The Privacy Filter is intentionally
-deterministic: data minimization is a security control and must never depend on
-an LLM.
+The **agent brain runs in the Python service** (`agent-service/`) as real ADK 2.0
+graph `Workflow`s with Pydantic-typed I/O; the TS app calls it over REST via
+`src/server/agentClient.ts` when `AGENT_SERVICE_URL` is set. Access control,
+consent, and PII minimization happen in the **TS app before the REST call** — the
+LLM is never the security boundary. (When `AGENT_SERVICE_URL` is unset, the app
+falls back to the in-process TS agents, used by the offline unit tests.) See
+**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ## Tech stack
 
-TypeScript · Next.js 16 (App Router) · React 19 · SQLite + Drizzle ORM ·
-Zod 4 · Google ADK for TypeScript (`@google/adk`) + Gemini (`@google/genai`) ·
-Vitest.
+**Frontend:** TypeScript · Next.js 16 (App Router) · React 19 · SQLite + Drizzle
+ORM · Zod 4 · Vitest.
+**Agent service:** Python 3.12 · **Google ADK 2.0** (`google-adk`) + `agents-cli`
+· Gemini · FastAPI · OpenTelemetry.
 
 ## Setup
 
-Requires Node.js 24+.
+Requires Node.js 24+ and (for the agent service) Python 3.11–3.13 + [uv](https://docs.astral.sh/uv/).
 
+**1) Agent service** (Python ADK 2.0) — needs a Gemini API key with credits:
+```bash
+uv tool install google-agents-cli
+cd agent-service
+echo "GOOGLE_API_KEY=...your key..." > .env   # + GEMINI_MODEL=gemini-2.5-flash
+agents-cli install
+uvicorn app.local_server:app --port 8800       # local REST server
+```
+
+**2) Frontend** (Next.js), in another terminal:
 ```bash
 npm install
-cp .env.example .env
-npm run db:push     # create the SQLite schema
-npm run seed        # load synthetic demo data
-npm run dev         # http://localhost:3000
+cp .env.example .env            # set AGENT_SERVICE_URL=http://127.0.0.1:8800
+npm run db:push                 # create the SQLite schema
+npm run seed                    # load synthetic demo data
+npm run dev                     # http://localhost:3000
 ```
 
 ## Environment variables
 
+**Frontend (`.env`):**
+
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `DATABASE_URL` | `file:./data/reviewops.sqlite` | SQLite location (`:memory:` for tests) |
-| `GOOGLE_API_KEY` | _(empty)_ | Gemini key; optional |
-| `USE_MOCK_MODEL` | `true` | `true` = always mock; `false` = use Gemini if key present |
-| `GEMINI_MODEL` | `gemini-2.0-flash` | model id when a real model is used |
+| `AGENT_SERVICE_URL` | _(empty)_ | Python service URL. Unset → in-process TS-agent fallback (tests) |
 | `TOKEN_EXPIRY_HOURS` | `168` | survey link lifetime |
 
-If `GOOGLE_API_KEY` is missing or `USE_MOCK_MODEL=true`, all agents use
-deterministic mock outputs — no network required.
+**Agent service (`agent-service/.env`):** `GOOGLE_API_KEY` (required),
+`GEMINI_MODEL` (e.g. `gemini-2.5-flash`).
 
 ## Demo flow
 
@@ -149,8 +154,8 @@ grounding (including UUID citations).
 
 - Mock login (no real SSO); cookie-based session.
 - Mock HRIS, mock outbox (no real Slack/email/Lattice/BambooHR).
-- Mock model outputs are heuristic, deterministic stand-ins, not human-quality
-  prose.
+- The offline TS-agent fallback (used by tests) is heuristic; the live agent
+  service uses Gemini.
 - Single-manager direct-report scope (no skip-level / HR-admin flows).
 - PII redaction is pattern-based and demonstrative.
 
