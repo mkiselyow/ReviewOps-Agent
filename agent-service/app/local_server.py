@@ -29,6 +29,7 @@ from google.genai import types
 
 from app.agent import questionnaire_workflow
 from app.evidence import evidence_workflow
+from app.review import review_workflow
 
 
 async def run_workflow(workflow, payload: dict) -> dict:
@@ -84,6 +85,12 @@ async def questionnaire(body: dict):
 async def evidence(body: dict):
     """Validate evidence + confidence-gated routing. Body: EvidenceInput."""
     return await run_workflow(evidence_workflow, body)
+
+
+@app.post("/review")
+async def review(body: dict):
+    """Generate a grounded review draft + fairness report. Body: ReviewContextInput."""
+    return await run_workflow(review_workflow, body)
 
 
 if __name__ == "__main__":

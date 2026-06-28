@@ -126,3 +126,72 @@ class EvidenceResult(BaseModel):
     mapped: EvidenceMapped
     status: EvidenceStatus
     routed_reason: str
+
+
+# --- Review draft + fairness grounding ---------------------------------------
+
+class ReviewEmployee(BaseModel):
+    role_title: str
+    alias: str = "the employee"  # no real name reaches the model
+
+
+class ReviewGoal(BaseModel):
+    id: str
+    title: str
+
+
+class ReviewEvidence(BaseModel):
+    id: str
+    summary: str
+    impact: str | None = None
+    period: str = ""
+    company_value: str | None = None
+    goal_id: str | None = None
+    quality_score: float | None = None
+
+
+class ReviewContextInput(BaseModel):
+    employee: ReviewEmployee
+    period: str
+    goals: list[ReviewGoal] = Field(default_factory=list)
+    role_expectations: list[str] = Field(default_factory=list)
+    company_values: list[str] = Field(default_factory=list)
+    evidence: list[ReviewEvidence] = Field(default_factory=list)
+
+
+class ReviewDraftOutput(BaseModel):
+    markdown: str
+    evidence_references: list[str] = Field(default_factory=list)
+
+
+FairnessWarningType = Literal[
+    "unsupported_claim",
+    "vague_praise",
+    "vague_criticism",
+    "recency_bias",
+    "source_imbalance",
+    "sensitive_data",
+    "compensation_language",
+]
+
+
+class FairnessWarning(BaseModel):
+    type: FairnessWarningType
+    message: str
+    severity: Literal["low", "medium", "high"]
+
+
+class FairnessReport(BaseModel):
+    grounded: bool
+    warnings: list[FairnessWarning] = Field(default_factory=list)
+    unsupported_claims: int = 0
+    cited_evidence: list[str] = Field(default_factory=list)
+
+
+class ReviewResult(BaseModel):
+    """Terminal output of the review workflow: the draft body (no employee name —
+    the app adds the heading) plus the deterministic fairness/grounding report."""
+
+    markdown: str
+    evidence_references: list[str] = Field(default_factory=list)
+    fairness: FairnessReport
