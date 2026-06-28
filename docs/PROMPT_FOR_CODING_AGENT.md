@@ -1,5 +1,10 @@
 # Prompt for Coding Agent — Build ReviewOps Agent MVP
 
+> **Historical artifact.** This prompt produced the original **all-TypeScript**
+> MVP. The project has since moved to a **hybrid** architecture (TS frontend +
+> Python ADK 2.0 agent service) — see `ARCHITECTURE.md`. Kept for provenance; do
+> not follow it for the current design.
+
 You are a senior TypeScript full-stack engineer and AI agent architect. Build a working MVP for a Kaggle AI Agents capstone project called **ReviewOps Agent**.
 
 The project is a permission-aware, evidence-grounded assistant for engineering managers. It helps managers generate questionnaires for their direct reports, collect employee-approved evidence, validate evidence quality, and generate grounded interim or annual review drafts.

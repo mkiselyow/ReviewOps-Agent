@@ -30,20 +30,38 @@ ReviewOps Agent provides a workflow where:
 10. The Fairness and Grounding Agent checks the draft before approval.
 11. The manager exports the final Markdown review.
 
+## Architecture
+
+ReviewOps is a **hybrid**: a TypeScript **Next.js frontend** + a **Python ADK
+2.0 agent service**. The agents are real ADK graph `Workflow`s (e.g.
+`questionnaire → safety`, `security_node → evidence_validator → finalize`,
+`review_draft → fairness`) with Pydantic-typed I/O, served over REST. The TS app
+owns access control and consent and sends only authorized, minimized,
+PII-redacted context to the service — the LLM is never the security boundary.
+The service is scaffolded with Google's `agents-cli` (playground, eval, deploy
+to Agent Runtime). See `ARCHITECTURE.md`.
+
+The design deliberately applies two Google (May 2026) whitepapers:
+- *Vibe Coding Agent Security and Evaluation* — 7-Pillar security, the
+  evaluation framework, and OpenTelemetry observability.
+- *Agent Skills* — `SKILL.md` + progressive disclosure via ADK `SkillToolset`,
+  and skill evaluation (EDD, Read→Draft→Act graduation).
+
 ## Why this is agentic
 
 ReviewOps is not just a chatbot. It coordinates a multi-step workflow across tools, state, permissions, and human approvals.
 
 It demonstrates:
 
-- multi-agent orchestration;
-- tool-mediated data access;
+- multi-agent orchestration (ADK 2.0 graph `Workflow`s);
+- tool-mediated data access; on-demand `SkillToolset` skills;
 - structured questionnaire generation;
-- evidence validation;
-- privacy filtering before model calls;
+- evidence validation with **confidence-gated routing** (auto-approve vs manager review);
+- privacy filtering before model calls (pre-LLM security node);
 - permission-aware data retrieval;
-- human-in-the-loop approval;
+- human-in-the-loop approval (the whitepaper's "Vibe Diff" logic review);
 - review grounding and fairness evaluation;
+- observability (OpenTelemetry traces) and a defined evaluation framework;
 - audit logging.
 
 ## Agents

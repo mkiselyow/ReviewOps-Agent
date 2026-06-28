@@ -8,23 +8,27 @@ Target video length: 3–6 minutes.
 
 ## Demo Setup
 
-Before recording:
+This is a **hybrid** app: the Next.js frontend + the Python ADK 2.0 agent
+service must both be running (the agent service needs a Gemini API key — no
+offline mock).
 
 ```bash
+# 1) Agent service (Python ADK 2.0)
+cd agent-service
+# put GOOGLE_API_KEY in agent-service/.env
+agents-cli install
+agents-cli playground          # or: agents-cli run "<prompt>"
+
+# 2) Frontend (TypeScript Next.js), in a second terminal
+cd ..
 npm install
-cp .env.example .env
+cp .env.example .env            # set AGENT_SERVICE_URL to the service
 npm run db:push
 npm run seed
 npm run dev
 ```
 
-Open the app locally.
-
-Use mock model mode if the Gemini/ADK setup is not ready:
-
-```text
-USE_MOCK_MODEL=true
-```
+Open the app locally; the frontend calls the agent service over REST.
 
 ## Demo Narrative
 
