@@ -81,10 +81,18 @@ safety_agent = Agent(
     mode="single_turn",
 )
 
-root_agent = Workflow(
-    name="root_agent",
+questionnaire_workflow = Workflow(
+    name="questionnaire_workflow",
     edges=[("START", questionnaire_agent, safety_agent)],
 )
+
+# root_agent for the playground/agents-cli is the validated questionnaire
+# workflow. The evidence workflow (app/evidence.py) is WIP: it runs without
+# error but its terminal function-node output is not surfaced by `agents-cli
+# run` (which renders only the final agent response). It will be validated via
+# the REST endpoint / playground, where the function-node Event(output=...) is
+# read programmatically.
+root_agent = questionnaire_workflow
 
 app = App(
     root_agent=root_agent,

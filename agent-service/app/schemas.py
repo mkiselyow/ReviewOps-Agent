@@ -72,3 +72,57 @@ class QuestionnaireWithSafety(BaseModel):
 
     questionnaire: QuestionnaireOutput
     safety: SafetyReport
+
+
+# --- Evidence validation + mapping -------------------------------------------
+
+EvidenceStatus = Literal["auto_approved", "pending_review"]
+
+
+class EvidenceInput(BaseModel):
+    answer_text: str
+    question_text: str = ""
+    period: str = ""
+    role_expectations: list[str] = Field(default_factory=list)
+    company_values: list[str] = Field(default_factory=list)
+    goals: list[str] = Field(default_factory=list)
+
+
+class EvidenceDimensions(BaseModel):
+    specificity: float
+    impact: float
+    source_support: float
+    relevance: float
+    time_clarity: float
+    review_usability: float
+
+
+class EvidenceValidation(BaseModel):
+    summary: str
+    impact: str | None = None
+    mapped_value: str | None = None
+    quality_score: float = Field(ge=0, le=1)
+    confidence: float = Field(ge=0, le=1)
+    dimensions: EvidenceDimensions
+    missing_fields: list[str] = Field(default_factory=list)
+    is_weak: bool
+    follow_up_question: str | None = None
+
+
+class EvidenceMapped(BaseModel):
+    """Validator output enriched by the values mapper."""
+
+    validation: EvidenceValidation
+    company_value: str | None = None
+    goal: str | None = None
+    role_expectation: str | None = None
+    map_confidence: float = Field(ge=0, le=1)
+
+
+class EvidenceResult(BaseModel):
+    """Terminal output of the evidence workflow, including the deterministic
+    confidence-gated routing decision."""
+
+    mapped: EvidenceMapped
+    status: EvidenceStatus
+    routed_reason: str
