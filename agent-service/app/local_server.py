@@ -22,6 +22,36 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# --- Local observability (OpenTelemetry) ------------------------------------
+# ADK 2.0 emits agent.session / agent.* spans via OpenTelemetry. Locally we
+# export them concisely to the console so the "trajectory" is visible without
+# GCP. In production, app/fast_api_app.py wires Cloud Trace instead.
+from opentelemetry import trace as _otel_trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter
+from opentelemetry.sdk.trace.export import SpanExportResult
+
+
+class _ConciseConsoleExporter(SpanExporter):
+    def export(self, spans):
+        for s in spans:
+            dur_ms = (
+                (s.end_time - s.start_time) / 1e6
+                if s.end_time and s.start_time
+                else 0.0
+            )
+            print(f"[otel] {s.name} {dur_ms:.0f}ms", flush=True)
+        return SpanExportResult.SUCCESS
+
+    def shutdown(self) -> None:  # noqa: D401
+        return None
+
+
+if not os.environ.get("DISABLE_LOCAL_OTEL"):
+    _provider = TracerProvider()
+    _provider.add_span_processor(SimpleSpanProcessor(_ConciseConsoleExporter()))
+    _otel_trace.set_tracer_provider(_provider)
+
 from fastapi import FastAPI
 from google.adk.apps import App
 from google.adk.runners import InMemoryRunner
