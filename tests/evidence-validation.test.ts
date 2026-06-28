@@ -30,6 +30,7 @@ describe("evidence validation", () => {
       answerText: WEAK,
       questionText: "Describe a contribution.",
       period: "2026-Q2",
+      roleExpectations: [],
       companyValues: ["Own It"],
     });
     expect(r.output.isWeak).toBe(true);
@@ -43,6 +44,7 @@ describe("evidence validation", () => {
       answerText: STRONG,
       questionText: "Describe a contribution.",
       period: "2026-Q2",
+      roleExpectations: [],
       companyValues: ["Own It"],
     });
     expect(r.output.isWeak).toBe(false);
