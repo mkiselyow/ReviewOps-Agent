@@ -30,6 +30,7 @@ from .schemas import (
     ReviewDraftOutput,
     ReviewResult,
 )
+from .security import sanitize
 
 _EMAIL_RE = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.I)
 _PHONE_RE = re.compile(r"(?:\+?\d[\d\s().-]{7,}\d)")
@@ -85,9 +86,9 @@ async def privacy_node(node_input: Any):
     data = _load_json(node_input)
     ctx = ReviewContextInput(**data)
     for e in ctx.evidence:
-        e.summary = _redact(e.summary)
+        e.summary, _ = sanitize(e.summary)
         if e.impact:
-            e.impact = _redact(e.impact)
+            e.impact, _ = sanitize(e.impact)
     evidence_ids = [e.id for e in ctx.evidence]
     yield Event(output=ctx.model_dump(), state={"evidence_ids": evidence_ids})
 

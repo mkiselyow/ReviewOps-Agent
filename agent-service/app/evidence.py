@@ -26,23 +26,9 @@ from .schemas import (
     EvidenceResult,
     EvidenceValidation,
 )
+from .security import sanitize
 
 CONFIDENCE_THRESHOLD = 0.7
-
-_EMAIL_RE = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.I)
-_PHONE_RE = re.compile(r"(?:\+?\d[\d\s().-]{7,}\d)")
-
-
-def _redact(text: str) -> tuple[str, list[str]]:
-    removed: list[str] = []
-    out = text
-    if _EMAIL_RE.search(out):
-        removed.append("email")
-        out = _EMAIL_RE.sub("[redacted-email]", out)
-    if _PHONE_RE.search(out):
-        removed.append("phone")
-        out = _PHONE_RE.sub("[redacted-phone]", out)
-    return out, removed
 
 
 def _to_text(node_input: Any) -> str:
@@ -80,10 +66,9 @@ def _load_json(node_input: Any) -> dict:
 async def security_node(node_input: Any):
     data = _load_json(node_input)
     ev = EvidenceInput(**data)
-    ev.answer_text, removed = _redact(ev.answer_text)
-    # Pass the sanitized, structured input on to the validator agent as a dict
-    # (the next node validates it against its input_schema).
-    yield Event(output=ev.model_dump(), state={"pii_removed": removed})
+    # PII redaction + prompt-injection screening before the model sees the answer.
+    ev.answer_text, removed = sanitize(ev.answer_text)
+    yield Event(output=ev.model_dump(), state={"security_removed": removed})
 
 
 VALIDATOR_PROMPT = """You are the Evidence Validator Agent. Given an employee's
