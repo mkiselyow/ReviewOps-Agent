@@ -15,6 +15,7 @@ export default function QuestionnaireForm({
   const [period, setPeriod] = useState(defaultPeriod);
   const [purpose, setPurpose] = useState("");
   const [notes, setNotes] = useState("");
+  const [evidenceValidation, setEvidenceValidation] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +27,7 @@ export default function QuestionnaireForm({
       const res = await fetch("/api/questionnaires", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, period, purpose, notes }),
+        body: JSON.stringify({ topic, period, purpose, notes, evidenceValidation }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to generate");
@@ -70,6 +71,21 @@ export default function QuestionnaireForm({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Any specifics you want emphasized."
         />
+      </div>
+      <div className="field">
+        <label className="row" style={{ cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={evidenceValidation}
+            onChange={(e) => setEvidenceValidation(e.target.checked)}
+            style={{ width: "auto" }}
+          />
+          <span>Validate evidence quality (score answers, ask follow-ups)</span>
+        </label>
+        <p className="small muted">
+          Turn off for a simple pulse/feedback survey: answers are stored as-is,
+          with no scoring, follow-ups, or evidence cards.
+        </p>
       </div>
       <button disabled={busy}>{busy ? "Generating…" : "Generate questions"}</button>
     </form>

@@ -121,4 +121,26 @@ describe("survey flow", () => {
     row = results.respondents.find((r) => r.respondentId === USERS.anna)!;
     expect(row.evidence.length).toBe(1);
   });
+
+  it("evidenceValidation=false stores plain responses, skips evidence (#3)", async () => {
+    const q = createQuestionnaire(
+      USERS.maria,
+      { title: "Pulse", period: "2026-Q2", evidenceValidation: false },
+      [{ position: 0, questionType: "long_text", text: "How are things going?" }],
+    );
+    approveQuestionnaire(USERS.maria, q.id);
+    const [anna] = createSurveyAssignments(USERS.maria, q.id, [USERS.anna]);
+    const token = anna.link.split("/").pop()!;
+    const questionId = getQuestions(q.id)[0].id;
+
+    const result = await orchestrateResponseSubmission(token, [
+      { questionId, answerText: STRONG_ANSWER, visibility: "allow_for_review" },
+    ]);
+    expect(result.validations.length).toBe(0); // no scoring/follow-ups
+    expect(getResponsesForAssignment(anna.assignmentId).length).toBe(1); // stored
+    const row = getQuestionnaireResults(USERS.maria, q.id).respondents.find(
+      (r) => r.respondentId === USERS.anna,
+    )!;
+    expect(row.evidence.length).toBe(0); // no evidence card created
+  });
 });

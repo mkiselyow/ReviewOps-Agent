@@ -1,5 +1,12 @@
 # ReviewOps Agent — Project Specification
 
+> **Architecture note (current):** ReviewOps is now a **hybrid** — a TypeScript
+> Next.js frontend + a **Python ADK 2.0 agent service** (graph `Workflow`s,
+> Gemini). See `ARCHITECTURE.md`. Recent additions beyond the original MVP: a
+> **standalone employee evidence flow**, **confidence-gated routing**
+> (auto-approve vs manager review), and an **annual review-cycle reminder** event.
+> The agent service requires a Gemini API key (no offline mock).
+
 ## 1. Project Name
 
 **ReviewOps Agent**
@@ -68,9 +75,10 @@ Build a working MVP where:
 - TypeScript/Node.js implementation.
 - Next.js full-stack app using the App Router.
 - SQLite database with Drizzle ORM or Prisma.
-- Google ADK for TypeScript where practical.
-- Gemini API when configured.
-- Deterministic mock-model fallback when no API key is configured.
+- **Python ADK 2.0 agent service** (graph `Workflow`s) — the agent brain.
+  (Original MVP ran agents in-process in TypeScript; superseded.)
+- Gemini API (required for the agent service; no offline mock).
+- TS app calls the agent service over REST; permissions enforced before the call.
 - Mock HRIS connector with employees, managers, roles, teams, goals, and role expectations.
 - Mock login selector.
 - Manager dashboard.

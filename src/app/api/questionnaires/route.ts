@@ -9,6 +9,7 @@ const bodySchema = z.object({
   period: z.string().min(1, "Period is required"),
   roleTitle: z.string().optional(),
   notes: z.string().optional(),
+  evidenceValidation: z.boolean().optional(),
 });
 
 export async function POST(req: Request) {

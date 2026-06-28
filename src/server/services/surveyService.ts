@@ -29,6 +29,7 @@ export type NewQuestionInput = {
   text: string;
   options?: string[] | null;
   required?: boolean;
+  evidenceRequired?: boolean;
   explanation?: string | null;
 };
 
@@ -39,6 +40,7 @@ export function createQuestionnaire(
     purpose?: string | null;
     period: string;
     privacyMode?: string;
+    evidenceValidation?: boolean;
   },
   questionList: NewQuestionInput[] = [],
 ): Questionnaire {
@@ -50,6 +52,7 @@ export function createQuestionnaire(
       purpose: input.purpose ?? null,
       period: input.period,
       privacyMode: input.privacyMode ?? "named_review_evidence",
+      evidenceValidation: input.evidenceValidation ?? true,
       status: "draft",
     })
     .returning()
@@ -76,6 +79,7 @@ export function addQuestions(
         text: q.text,
         optionsJson: q.options ? JSON.stringify(q.options) : null,
         required: q.required ?? true,
+        evidenceRequired: q.evidenceRequired ?? true,
         explanation: q.explanation ?? null,
       })),
     )

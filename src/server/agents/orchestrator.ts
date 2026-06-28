@@ -41,6 +41,7 @@ export async function orchestrateQuestionnaireGeneration(
     period: string;
     roleTitle?: string;
     notes?: string;
+    evidenceValidation?: boolean;
   },
 ) {
   const companyValues = getCompanyValueNames();
@@ -71,6 +72,7 @@ export async function orchestrateQuestionnaireGeneration(
       purpose: generated.output.purpose,
       period: input.period,
       privacyMode: generated.output.privacyMode,
+      evidenceValidation: input.evidenceValidation ?? true,
     },
     generated.output.questions,
   );
@@ -100,6 +102,11 @@ export async function orchestrateResponseSubmission(
   const { assignment, responses } = submitResponseByToken(token, answers);
 
   const questionnaire = getQuestionnaire(assignment.questionnaireId);
+  // Evidence validation can be disabled per questionnaire: store plain responses
+  // and skip scoring / follow-ups / evidence-card creation.
+  if (questionnaire && !questionnaire.evidenceValidation) {
+    return { validations: [] };
+  }
   const period = questionnaire?.period ?? "";
   const employee = getEmployeeProfile(assignment.respondentId);
   const roleExpectations = employee ? getRoleExpectations(employee.roleTitle) : [];

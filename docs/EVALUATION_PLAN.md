@@ -1,5 +1,37 @@
 # ReviewOps Agent — Evaluation Plan
 
+> Hybrid note: the **TypeScript app** is evaluated with **Vitest** (permissions,
+> tokens, results, consent — §2). The **Python ADK 2.0 agent service** is
+> evaluated with **`agents-cli eval`** (golden datasets + LLM-as-judge +
+> trajectory inspection — §0.2). This plan applies Google's *Vibe Coding Agent
+> Security and Evaluation* (May 2026) framework.
+
+## 0. Evaluation framework (applied)
+
+### 0.1 Dimensions (what to evaluate)
+Of the whitepaper's seven dimensions, ReviewOps (structured-output agents) cares
+most about:
+1. **Intent satisfaction** — does the questionnaire/review match the manager's request? (LLM-as-judge against the request)
+2. **Functional correctness** — schema-valid output; reviews cite evidence ids; questionnaires have 5–7 typed questions. (automated)
+3. **Trajectory quality** — the workflow runs the right nodes/tools in the right order. (trajectory inspection)
+4. **Safety & responsible-AI** (transversal) — safety agent rejects protected topics; privacy filter redacts PII; no comp/promo language. (automated + adversarial)
+5. **Cost & efficiency** — tokens / latency / tool-calls per flow. (observability)
+
+(Visual correctness and self-repair are less relevant — we emit structured data, not UI/code.)
+
+### 0.2 Methods (how to evaluate)
+- **Automated functional testing** — TS Vitest (§2); Pydantic schema validation in the service.
+- **LLM-as-judge** — `agents-cli eval` scores outputs against rubrics (§4); swap reference/actual positions to remove ordering bias; calibrate to ~90% human agreement.
+- **Trajectory inspection** — OpenTelemetry spans (`agent.session/think/tool`); ADK eval trajectory modes **EXACT / IN_ORDER / ANY_ORDER**.
+- **Security & safety eval** — adversarial/protected-topic probes (§2.4); secrets-scan + SAST (Semgrep) in CI.
+- **Human review** — calibrate the judges; the manager approval gate is the ground-truth signal.
+
+### 0.3 Graduation (Read → Draft → Act) + pass^k
+Gate agent flows by authority, per the whitepaper:
+- **Read-only** (generate questionnaire/draft for human review): LLM-as-judge, ≥90% trigger/quality.
+- **Draft** (evidence cards, review drafts): golden dataset (20+ cases) + human approval.
+- **Action-allowed** (e.g. **auto-approving high-confidence evidence**): adversarial red-team + **`pass^k`** (success on every one of k runs, not a single lucky pass) + no rollback events.
+
 ## 1. Evaluation Goals
 
 The project should be evaluated on whether it demonstrates useful agentic behavior, not just text generation.
@@ -146,6 +178,11 @@ The demo should clearly show:
 
 ## 4. Agent Quality Evaluation
 
+These rubrics are operationalized as **`agents-cli eval`** golden datasets scored
+by **LLM-as-judge** (per §0.2): commit ~20–30 cases per workflow under
+`agent-service/tests/eval/`, score each output 1–5 against the rubric, and track
+the scores in CI.
+
 ### Questionnaire Quality Rubric
 
 Score each generated questionnaire 1–5 on:
@@ -195,11 +232,12 @@ Security criteria:
 
 The evaluation should show evidence for:
 
-- multi-agent system;
-- tools and service wrappers;
+- multi-agent system (ADK 2.0 graph `Workflow`s);
+- tools and service wrappers; `SkillToolset` skills;
 - mock MCP-compatible connector boundary;
-- session/stateful workflow;
-- human-in-the-loop approval;
-- privacy/security guardrails;
-- evaluation and testing;
+- session/stateful workflow + confidence-gated routing;
+- human-in-the-loop approval ("Vibe Diff" logic review);
+- privacy/security guardrails (7-Pillar mapping; pre-LLM PII redaction);
+- **observability** (OpenTelemetry traces → Cloud Trace);
+- **evaluation framework** (`agents-cli eval`, LLM-as-judge, trajectory, Read→Draft→Act, `pass^k`);
 - auditability.

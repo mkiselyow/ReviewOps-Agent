@@ -121,6 +121,11 @@ export const questionnaires = sqliteTable("questionnaires", {
   purpose: text("purpose"),
   period: text("period").notNull(),
   privacyMode: text("privacy_mode").notNull().default("named_review_evidence"),
+  // When false, responses are stored as plain answers (no evidence validation,
+  // scoring, follow-ups, or evidence cards).
+  evidenceValidation: integer("evidence_validation", { mode: "boolean" })
+    .notNull()
+    .default(true),
   status: text("status").notNull().default("draft"),
   createdAt: createdAt(),
   approvedAt: text("approved_at"),
@@ -136,6 +141,10 @@ export const questions = sqliteTable("questions", {
   text: text("text").notNull(),
   optionsJson: text("options_json"),
   required: integer("required", { mode: "boolean" }).notNull().default(true),
+  // Whether this specific question expects a supporting artifact / evidence.
+  evidenceRequired: integer("evidence_required", { mode: "boolean" })
+    .notNull()
+    .default(true),
   explanation: text("explanation"),
   createdAt: createdAt(),
 });

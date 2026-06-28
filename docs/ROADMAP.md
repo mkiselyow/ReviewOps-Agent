@@ -31,6 +31,44 @@ The MVP uses synthetic data and local tools.
 - Promotion decisions.
 - Employee ranking.
 
+## Agentic & platform roadmap (hybrid + applied frameworks)
+
+Beyond the product integrations below, the **Python ADK 2.0 agent service** has
+its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
+*Agent Skills* whitepapers (see `ARCHITECTURE.md` §4).
+
+### A. Agent service & deployment
+- Finish porting workflows (questionnaire ✅, evidence 🟡, review ⬜) and wire the
+  Next app over REST (remove in-process TS agents).
+- Standalone **employee evidence flow** + **confidence-gated routing**
+  (auto-approve vs manager review queue) + **RequestInput** HITL.
+- Deploy: Python service → **Agent Runtime** (`agents-cli deploy`); Next.js →
+  Cloud Run/Vercel.
+
+### B. Ambient (event-driven)
+- Pub/Sub + Cloud Scheduler: review-season reminders, incomplete-survey nudges,
+  auto-close questionnaires past deadline.
+
+### C. Security (7-Pillar) — beyond today's baseline
+Today: access control before model, pre-LLM PII redaction, HITL approval, no
+secrets in frontend, audit trail. Roadmap: prompt-injection screening + LLM
+firewall (Pillar 4); secrets-scan/SAST in CI; agentic identity + JIT downscoping
+(Pillar 5); Red/Blue/Green teaming + circuit breakers (Pillar 6); MCP contextual
+authorization; EU AI Act governance/attestation (Pillar 7).
+
+### D. Observability
+- OpenTelemetry export (`agent.session/think/tool`) → Cloud Trace; token-cost
+  accounting; tail-based sampling; intent-drift / AgBOM monitoring.
+
+### E. Skills
+- Author a **skills library** (`drafting-performance-reviews`,
+  `validating-evidence`, …) loaded via ADK `SkillToolset`; EDD eval + Read→Draft→Act
+  graduation; later, meta-skills (agent-drafted, human-reviewed).
+
+### F. Evaluation
+- Operationalize `agents-cli eval` golden datasets + LLM-as-judge + trajectory
+  inspection in CI (see `EVALUATION_PLAN.md` §0).
+
 ## Phase 2 — Slack Delivery
 
 Replace mock outbox with Slack workflow.
