@@ -175,8 +175,11 @@ review grounding (incl. connector signals), the dynamic-questionnaire
 
 ## Deployment
 
+**Live demo: https://reviewops-agent.vercel.app** — log in as **Maria** and run the
+full flow.
+
 The **Python agent service is deployed to Cloud Run** (stateless; Vertex mode, no
-API key in the image). The **Next.js frontend** deploys to Vercel backed by
+API key in the image). The **Next.js frontend** is deployed to **Vercel** backed by
 **Turso/libSQL** (the DB layer is dual-driver: better-sqlite3 locally + Turso in
 prod). Full reproduction: **[docs/DEPLOY.md](docs/DEPLOY.md)**.
 

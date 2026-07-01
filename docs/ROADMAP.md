@@ -46,8 +46,11 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
   legend, number/date/email, deterministic normalizer, refine-and-regenerate).
 - ✅ **Mock BambooHR/Lattice connector** behind typed contracts; peer/feedback/1:1
   signals fold into review grounding (transient, not stored).
-- ⬜ Deploy: Python service → **Agent Runtime** (`agents-cli deploy`); Next.js →
-  Cloud Run/Vercel. ⬜ Optional `RequestInput` HITL for the weak-evidence pause.
+- ✅ **Deployed live** — Python agent service → **Cloud Run** (Vertex mode, no key in
+  image); Next.js frontend → **Vercel** backed by **Turso/libSQL** (dual-driver).
+  Live demo: **https://reviewops-agent.vercel.app**. See [DEPLOY.md](DEPLOY.md).
+- ⬜ Optional: Python service → **Agent Runtime** (`agents-cli deploy`) to showcase
+  ADK-native deploy; `RequestInput` HITL for the weak-evidence pause.
 
 ### B. Ambient (event-driven)
 - ✅ **In-app deadlines & nudges** — questionnaire `deadline`, overdue detection,
@@ -58,14 +61,15 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
   deadline; review-season reminders.
 
 ### B2. Capstone submission & ops (high priority — deadline 2026-07-06)
-- 🔴 **Submission artifacts (HIGH):** finalize the Kaggle Writeup (≤2,500 words,
-  *Agents for Business*), a cover image, and a **≤5-min YouTube demo video**; a
-  public project link (live demo **or** public GitHub repo with setup). These are
-  *required* for eligibility and worth 30 of 100 points — do not let them slip.
-- **Publish/verify the public GitHub repo.** A local git repo already exists; it
-  wasn't visible from the assistant's shell because the working directory was the
-  wrong folder (`X:\dev\RavenGame`, not `X:\dev\ReviewOpsAgent`). Action: confirm
-  the repo, push, and make it public with the README as the front door.
+- ✅ **Public project link satisfied** — live demo at
+  **https://reviewops-agent.vercel.app** (Vercel + Cloud Run + Turso, verified
+  end-to-end).
+- 🔴 **Submission artifacts (HIGH, still TODO):** finalize the Kaggle Writeup
+  (≤2,500 words, *Agents for Business*), a cover image, and a **≤5-min YouTube demo
+  video**. These are *required* for eligibility and worth 30 of 100 points — do not
+  let them slip.
+- **Optionally also make the GitHub repo public** as a backup project link (the repo
+  is `github.com/mkiselyow/ReviewOps-Agent`; currently private).
 - **CI (GitHub Actions).** *Why:* catch regressions automatically on every push so
   the submission stays green. *What:* `.github/workflows/ci.yml` running
   `npm run typecheck` + `npm test` + `npm run build` (fast, no GCP). Separately, a

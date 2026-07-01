@@ -1,5 +1,9 @@
 # Deploying ReviewOps Agent
 
+**Live demo: https://reviewops-agent.vercel.app** (frontend, Vercel) →
+`https://reviewops-agent-646537488167.us-central1.run.app` (agent, Cloud Run) →
+Turso (libSQL).
+
 Production topology (Option B — a live public demo):
 
 ```
