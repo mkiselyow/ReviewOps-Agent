@@ -53,3 +53,7 @@ __pycache__/
 # Vercel CLI (project link + local OIDC token). Secrets already covered above by
 # `.env` / `.env*.local`; keep `.env.example` committed as a template.
 .vercel
+
+# Playwright e2e artifacts
+test-results/
+playwright-report/

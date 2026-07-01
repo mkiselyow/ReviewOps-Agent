@@ -150,7 +150,15 @@ npm run dev                     # http://localhost:3000
 npm test          # Vitest (in-memory SQLite + Drizzle migrations)
 npm run typecheck # tsc --noEmit
 npm run build     # Next production build
+npm run e2e       # Playwright smoke vs a deployed instance (default: production)
 ```
+
+`npm run e2e` runs a Playwright smoke against a **live deployment** (`E2E_BASE_URL`
+overrides the default production URL): it logs in as Maria, asserts permission
+scope (her reports show, another team's does not), and drives a real
+questionnaire generation through **Vercel → Cloud Run → Gemini** to the preview.
+It writes a draft to the target DB, so re-seed afterwards when run against the demo
+DB.
 
 **54 Vitest tests** cover the security stories (manager scope, token hashing,
 expiry, cross-assignment isolation), questionnaire schema validity,
