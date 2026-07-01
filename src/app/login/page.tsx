@@ -7,9 +7,17 @@ import { getCurrentUser } from "@/server/auth/mockSession";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ manager?: string | string[] }>;
+}) {
   // Already logged in → go to the dashboard instead of showing the login UI.
   if (await getCurrentUser()) redirect("/manager");
+
+  // The real-manager passphrase form is hidden by default so it doesn't distract
+  // demo/judge users. Reveal it only via `/login?manager` (bookmark this URL).
+  const showManagerLogin = (await searchParams)?.manager !== undefined;
 
   // Only demo/test users appear in the one-click switcher. Real users are
   // hidden and sign in via the passphrase form below.
@@ -35,7 +43,7 @@ export default async function LoginPage() {
         </p>
       </div>
       <UserSwitcher users={users} />
-      <ManagerPassphraseLogin />
+      {showManagerLogin && <ManagerPassphraseLogin />}
     </Layout>
   );
 }
