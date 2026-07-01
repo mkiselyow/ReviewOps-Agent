@@ -117,6 +117,17 @@ authorization; EU AI Act governance/attestation (Pillar 7).
 - ⬜ Non-destructive `seed:demo` (upsert demo rows only); optional **separate DB**
   for real colleague data (privacy isolation).
 
+### H. Evidence attachments (post-Kaggle **priority**)
+Let employees reinforce evidence with real proofs, not just links.
+- **File types:** images (png/jpg/webp), **PDFs**, docs/decks/sheets
+  (docx/pptx/xlsx), plain text/markdown; keep existing links (PR/Figma/Google Docs).
+- **Validations:** type allowlist (magic-byte sniff, not just extension), **size
+  caps**, **AV/malware scan** + content-safety moderation, **EXIF/metadata + PII
+  stripping** on images, filename sanitization.
+- **Storage/security:** off-DB object store (**Vercel Blob / GCS**) via
+  **signed URLs**; access scoped to the evidence owner + their manager; audited.
+- Wire attachments into evidence validation + review grounding (cite the artifact).
+
 ## Phase 2 — Slack Delivery
 
 Replace mock outbox with Slack workflow.
@@ -186,15 +197,20 @@ connector). Signals marked *context-only* must **not** drive a rating.
 
 ## Phase 4 — Notion / Knowledge Base Integration
 
-Use Notion or another knowledge base for company context.
+Fetch company context from **Notion (MCP server or REST API)** instead of the
+static `data/seed/*.md` files — so values, the role ladder/matrix, and
+responsibilities are owned in Notion and pulled live into grounding (and the
+review-draft grounding-reference panel).
 
 ### Features
 
 - Company values.
-- Engineering ladder.
+- Engineering ladder / **role matrix + responsibilities** (per role level).
 - Role expectations.
 - Project context.
 - Review writing guidelines.
+- Delivery: a **Notion MCP server** (preferred — typed tools, allowlisted) or the
+  Notion REST API behind the existing connector-style contract; cache + audit reads.
 
 ### Safety Requirements
 

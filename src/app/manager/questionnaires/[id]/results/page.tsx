@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import Layout from "@/components/Layout";
 import EvidenceCard from "@/components/EvidenceCard";
+import ResultsExport from "@/components/ResultsExport";
 import { getCurrentUser } from "@/server/auth/mockSession";
 import { getQuestionnaireResults } from "@/server/services/surveyService";
 import { PermissionError, NotFoundError } from "@/server/auth/permissions";
@@ -31,13 +31,33 @@ export default async function ResultsPage({
     throw err;
   }
 
+  // Raw export payload — questions + answers only, no AI-derived fields.
+  const exportRespondents = results.respondents.map((r) => ({
+    name: r.respondentName,
+    status: r.status,
+    answers: [...r.responses]
+      .map((resp) => {
+        const q = results.questions.find((x) => x.id === resp.questionId);
+        return {
+          position: q?.position ?? 0,
+          question: q?.text ?? "Question",
+          answer: resp.answerText ?? "",
+        };
+      })
+      .sort((a, b) => a.position - b.position)
+      .map(({ question, answer }) => ({ question, answer })),
+  }));
+
   return (
     <Layout user={user}>
       <div className="spread" style={{ marginBottom: 12 }}>
         <h1 style={{ fontSize: 22, margin: 0 }}>
           Results · {results.questionnaire.title}
         </h1>
-        <span className="badge">{results.questionnaire.period}</span>
+        <div className="row">
+          <ResultsExport respondents={exportRespondents} />
+          <span className="badge">{results.questionnaire.period}</span>
+        </div>
       </div>
 
       {results.respondents.length === 0 && (
@@ -118,14 +138,6 @@ export default async function ResultsPage({
             </details>
           )}
 
-          <p className="small" style={{ marginTop: 10 }}>
-            <Link
-              className="btn btn-ghost"
-              href={`/manager/reviews/new/${r.respondentId}`}
-            >
-              Generate review draft
-            </Link>
-          </p>
         </div>
       ))}
     </Layout>

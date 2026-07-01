@@ -50,7 +50,10 @@ export default function AddEvidenceForm({ defaultPeriod }: { defaultPeriod: stri
       if (!res.ok) throw new Error((data as { error?: string }).error ?? "Submit failed");
       setResult(data);
       if (data.status === "stored") {
-        setEvidenceId(data.evidence.id);
+        // Stored successfully — clear the input so the next entry starts fresh
+        // (the success note above still summarizes what was just saved).
+        setText("");
+        setEvidenceId(null);
         router.refresh();
       }
     } catch (e) {

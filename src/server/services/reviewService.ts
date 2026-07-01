@@ -168,7 +168,7 @@ export async function approveReviewDraft(
 
 export type ExportResult = {
   fileName: string;
-  filePath: string;
+  filePath: string | null;
   markdown: string;
 };
 
@@ -197,7 +197,8 @@ export async function exportReviewMarkdown(
   const fileName = exportFileName(employee?.displayName ?? draft.employeeId, draft.period);
   const written = writeMarkdownExport(fileName, finalMarkdown);
 
-  db.update(reviewDrafts)
+  await db
+    .update(reviewDrafts)
     .set({ status: "exported", exportedAt: isoNow() })
     .where(eq(reviewDrafts.id, draftId))
     .run();

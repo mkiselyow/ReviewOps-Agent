@@ -25,20 +25,30 @@ evidence id, and nothing is invented.
 - Anything about compensation, promotion, ranking, or headcount — out of scope.
 
 ## Workflow
-1. Use **only** the provided evidence; never invent facts, metrics, or links.
-2. **Cite an evidence id inline** like `[ev_x]` for every achievement and claim.
-3. Use these sections, in order: `Summary`, `Achievements`,
-   `Evidence-Backed Examples`, `Growth Areas`, `Suggested Next-Period Goals`,
+1. Use **only** the provided evidence/signals; never invent, infer, or embellish
+   facts, metrics, or links.
+2. **Cite an evidence id inline** like `[ev_x]` (or `[peer:…]`, `[fb:…]`,
+   `[1on1:…]`) for every achievement and claim.
+3. **Calibrate against the role expectations** (the role matrix): meeting an
+   expectation is "at level", not exceptional; below the level is "developing
+   toward level"; an expectation with no evidence is "not yet evidenced" and goes
+   to *Requests for More Information* — never assumed met.
+4. Use these sections, in order: `Summary`, `Role-Expectation Coverage`,
+   `Achievements`, `Evidence-Backed Examples`, `Growth Areas`,
+   `Requests for More Information`, `Suggested Next-Period Goals`,
    `Evidence References`.
-4. Professional, constructive manager-review tone.
-5. Never include compensation / promotion / ranking language or sensitive
+5. Fair and factual — do **not** sweeten; no praise without a cited fact.
+6. Never include compensation / promotion / ranking language or sensitive
    personal data.
-6. Do **not** include the employee's name — the app adds the heading afterward.
-7. For sparse or missing evidence, see `references/grounding-rules.md`.
+7. Do **not** include the employee's name — the app adds the heading afterward.
+8. For sparse/missing evidence and signal handling, see
+   `references/grounding-rules.md`.
 
 ## Output format
-Markdown with the six sections above. Every bullet under `Achievements` must carry
-at least one `[ev_id]` citation. `Evidence References` lists each id with its summary.
+Markdown with the sections above. Every bullet under `Achievements` carries at
+least one `[ev_id]` citation. `Role-Expectation Coverage` has one bullet per
+expectation with an at-level / above-level / developing / not-yet-evidenced
+verdict. `Evidence References` lists each cited id with its summary.
 
 ## Examples
 - Input: evidence `[ev_anna_1]` "Refactored the shared tooltip component…" →

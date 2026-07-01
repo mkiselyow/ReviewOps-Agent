@@ -34,7 +34,7 @@ export default function ReviewDraftViewer({
   const [status, setStatus] = useState(initialStatus);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [exportPath, setExportPath] = useState<string | null>(null);
+  const [exported, setExported] = useState(false);
 
   const approved = status === "approved" || status === "exported";
 
@@ -64,7 +64,20 @@ export default function ReviewDraftViewer({
       const res = await fetch(`/api/reviews/${draftId}/export`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Export failed");
-      setExportPath(data.filePath);
+      // Download the finalized markdown in the browser (works on serverless,
+      // where the server can't write to disk).
+      const blob = new Blob([data.markdown ?? markdown], {
+        type: "text/markdown;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.fileName ?? "review.md";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setExported(true);
       setStatus("exported");
     } catch (e) {
       setError((e as Error).message);
@@ -138,12 +151,12 @@ export default function ReviewDraftViewer({
             {approved ? "Approved" : busy ? "Saving…" : "Approve draft"}
           </button>
           <button className="btn-ghost" onClick={exportMd} disabled={busy || !approved}>
-            Export Markdown
+            {exported ? "Download again" : "Export Markdown"}
           </button>
         </div>
-        {exportPath && (
+        {exported && (
           <div className="note good small" style={{ marginTop: 12 }}>
-            Exported to <code>{exportPath}</code>
+            Downloaded the approved review as Markdown.
           </div>
         )}
       </div>

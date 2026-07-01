@@ -23,10 +23,10 @@ export async function POST(
 
     // Allow the manager to persist edits before approving.
     if (body.markdown && body.markdown.trim().length > 0) {
-      updateReviewDraftMarkdown(manager.id, draftId, body.markdown);
+      await updateReviewDraftMarkdown(manager.id, draftId, body.markdown);
     }
 
-    const approved = approveReviewDraft(manager.id, draftId);
+    const approved = await approveReviewDraft(manager.id, draftId);
     logAudit({
       actorId: manager.id,
       action: "review_approved",

@@ -266,14 +266,8 @@ export default function SurveyResponseForm({
           ground a review draft.
         </p>
         <button className={submitted ? "btn-ghost" : undefined} disabled={busy}>
-          {busy ? "Submitting…" : submitted ? "Update & resubmit" : "Submit answers"}
+          {busy ? "Submitting…" : submitted ? "Resubmit" : "Submit answers"}
         </button>
-        {submitted && (
-          <p className="small muted" style={{ marginTop: 6 }}>
-            Already submitted — you can refine your answers and resubmit until your
-            manager prepares the review.
-          </p>
-        )}
       </div>
     </form>
   );
