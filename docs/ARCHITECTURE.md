@@ -31,7 +31,7 @@ flowchart TB
     AUTH["Auth + RBAC + permissions<br/>(enforced BEFORE the model)"]
     SVC["Services: hris / survey / evidence /<br/>review / outbox / audit / export"]
     PRIV["Privacy filter (deterministic)<br/>PII redaction + minimization"]
-    DB[("SQLite + Drizzle<br/>users, questionnaires, evidence,<br/>review_drafts, audit_logs ...")]
+    DB[("Drizzle ORM · dual-driver<br/>SQLite (local) / Turso libSQL (prod)<br/>users, questionnaires, evidence,<br/>review_drafts, audit_logs ...")]
   end
 
   subgraph Agent["Python ADK 2.0 agent service (FastAPI)"]
@@ -275,7 +275,22 @@ layer is `async`, so the same code drives both drivers.
 Deployment (see `docs/DEPLOY.md`): the **stateless Python agent service → Cloud
 Run** (serving the REST contract, in Vertex mode with no API key — the runtime
 service account authenticates via ADC); the **Next.js frontend → Vercel** with the
-Turso DB. Backend is live and verified.
+Turso DB. **Live and verified end-to-end** at
+**https://reviewops-agent.vercel.app** (a Playwright smoke, `npm run e2e`, drives
+login → permission scope → live questionnaire generation against this URL).
+
+```mermaid
+flowchart LR
+  Browser["Browser"] -->|HTTPS| Vercel["Next.js frontend<br/>(Vercel · serverless)"]
+  Vercel -->|AGENT_SERVICE_URL / REST| CR["Python agent service<br/>(Cloud Run · Vertex mode, ADC)"]
+  Vercel -->|libSQL over HTTPS| Turso["Turso / libSQL<br/>(app data)"]
+  CR -->|Vertex AI| Gemini["Gemini 2.5 Flash"]
+  CR -.->|OpenTelemetry| Trace["Cloud Trace"]
+```
+
+Only the **Next.js server** (not the browser) calls Cloud Run, so no CORS/public
+agent exposure is needed; secrets live in Vercel env vars + the Cloud Run runtime
+SA, never in the image or the repo.
 
 ---
 

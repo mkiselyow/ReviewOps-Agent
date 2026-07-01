@@ -138,6 +138,29 @@ the same interface.
 - Fetch review cycles.
 - Fetch role or competency metadata where available.
 
+### Additional performance signals (annual / mid-review grounding)
+
+Beyond today's mock (peer reviews, feedback, 1:1 notes, goal status), extend the
+`PerformanceConnector` contract with these Lattice/BambooHR-shaped signals to
+better ground trend, impact, and promotion-readiness claims. Each is fetched
+**transiently**, PII-redacted and reviewer-anonymized, and folded into review
+context via `gatherReviewSignals` — never stored (same posture as the current
+connector). Signals marked *context-only* must **not** drive a rating.
+
+- **Self-assessment / prior review** — the employee's own last-cycle review + rating.
+  *Why:* enables trend/growth framing across cycles ("since last review…").
+- **Goal / OKR progress with metrics** — % complete + key results, not just status.
+  *Why:* grounds "impact" claims in measurable outcomes.
+- **Recognition / kudos & values-tagged shout-outs** — company-value-tagged praise.
+  *Why:* concrete evidence of company-value alignment.
+- **Career-ladder / competency matrix** — expected-vs-demonstrated level per
+  competency. *Why:* grounds promotion-readiness and level-appropriate expectations.
+- **Engagement / eNPS or 1:1 cadence** *(context-only)* — participation/cadence
+  signals for context, used carefully; **never** an input to a rating.
+- **BambooHR profile facts** — tenure, role/comp *history* (not current salary),
+  time-off patterns, training/certifications completed. *Why:* tenure/role context
+  and growth via completed training; respect the "no salary/PII" fetch rule below.
+
 ### Safety Requirements
 
 - OAuth or API-token based auth.
