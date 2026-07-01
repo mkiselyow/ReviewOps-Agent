@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import Layout from "@/components/Layout";
 import UserSwitcher from "@/components/UserSwitcher";
-import { listAllUsers, getUserById } from "@/server/services/hrisService";
+import ManagerPassphraseLogin from "@/components/ManagerPassphraseLogin";
+import { listDemoUsers, getUserById } from "@/server/services/hrisService";
 import { getCurrentUser } from "@/server/auth/mockSession";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +11,10 @@ export default async function LoginPage() {
   // Already logged in → go to the dashboard instead of showing the login UI.
   if (await getCurrentUser()) redirect("/manager");
 
+  // Only demo/test users appear in the one-click switcher. Real users are
+  // hidden and sign in via the passphrase form below.
   const users = await Promise.all(
-    (await listAllUsers()).map(async (u) => ({
+    (await listDemoUsers()).map(async (u) => ({
       id: u.id,
       displayName: u.displayName,
       roleTitle: u.roleTitle,
@@ -27,11 +30,12 @@ export default async function LoginPage() {
         <h2>Mock login</h2>
         <p className="muted small">
           Select a demo user. This is a stand-in for real SSO — every sensitive
-          action is still enforced by server-side permission checks. All data is
-          synthetic.
+          action is still enforced by server-side permission checks. All demo
+          data is synthetic.
         </p>
       </div>
       <UserSwitcher users={users} />
+      <ManagerPassphraseLogin />
     </Layout>
   );
 }

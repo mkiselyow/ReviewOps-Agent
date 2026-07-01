@@ -7,7 +7,8 @@
     "department": "Engineering",
     "managerId": null,
     "employmentStatus": "active",
-    "isHrAdmin": false
+    "isHrAdmin": false,
+    "isTestUser": true
   },
   {
     "id": "u_anna",
@@ -17,7 +18,8 @@
     "department": "Engineering",
     "managerId": "u_maria",
     "employmentStatus": "active",
-    "isHrAdmin": false
+    "isHrAdmin": false,
+    "isTestUser": true
   },
   {
     "id": "u_mark",
@@ -27,7 +29,8 @@
     "department": "Engineering",
     "managerId": "u_maria",
     "employmentStatus": "active",
-    "isHrAdmin": false
+    "isHrAdmin": false,
+    "isTestUser": true
   },
   {
     "id": "u_julia",
@@ -37,7 +40,8 @@
     "department": "Engineering",
     "managerId": "u_maria",
     "employmentStatus": "active",
-    "isHrAdmin": false
+    "isHrAdmin": false,
+    "isTestUser": true
   },
   {
     "id": "u_nora",
@@ -47,7 +51,8 @@
     "department": "Platform",
     "managerId": null,
     "employmentStatus": "active",
-    "isHrAdmin": false
+    "isHrAdmin": false,
+    "isTestUser": true
   },
   {
     "id": "u_olek",
@@ -57,6 +62,7 @@
     "department": "Platform",
     "managerId": "u_nora",
     "employmentStatus": "active",
-    "isHrAdmin": false
+    "isHrAdmin": false,
+    "isTestUser": true
   }
 ]

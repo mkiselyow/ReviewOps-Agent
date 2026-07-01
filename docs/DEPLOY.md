@@ -34,8 +34,13 @@ gcloud services enable run.googleapis.com cloudbuild.googleapis.com aiplatform.g
 
 gcloud run deploy reviewops-agent \
   --source agent-service --region us-central1 --allow-unauthenticated \
-  --set-env-vars "GEMINI_MODEL=gemini-2.5-flash,DISABLE_LOCAL_OTEL=1,GOOGLE_GENAI_USE_VERTEXAI=True,GOOGLE_CLOUD_PROJECT=<PROJECT>,GOOGLE_CLOUD_LOCATION=us-central1" \
+  --set-env-vars "GEMINI_MODEL=gemini-2.5-flash,DISABLE_LOCAL_OTEL=1,GOOGLE_GENAI_USE_VERTEXAI=True,GOOGLE_CLOUD_PROJECT=<PROJECT>,GOOGLE_CLOUD_LOCATION=us-central1,AGENT_SHARED_SECRET=<SHARED_SECRET>" \
   --min-instances 0 --max-instances 4 --memory 1Gi
+
+# AGENT_SHARED_SECRET must MATCH the value set on Vercel. When set, the agent
+# rejects any /questionnaire /evidence /review call missing a matching
+# X-Agent-Key header (401) — so only our backend can spend Gemini quota. For a
+# real secret, prefer Secret Manager: --set-secrets AGENT_SHARED_SECRET=<name>:latest
 
 # smoke test
 curl "$SERVICE_URL/health"
@@ -76,6 +81,11 @@ Import the GitHub repo in Vercel (or `vercel` CLI), then set **Environment Varia
 | `TURSO_DATABASE_URL` | from step 2 |
 | `TURSO_AUTH_TOKEN` | from step 2 |
 | `TOKEN_EXPIRY_HOURS` | `168` |
+| `SESSION_SECRET` | random 32+ bytes — signs the session cookie (anti-forgery) |
+| `AGENT_SHARED_SECRET` | random secret — **must match** the value set on Cloud Run (step 1) |
+| `MANAGER_PASSPHRASE` | (optional) enables real-manager passphrase sign-in |
+| `MANAGER_USER_ID` | (optional) the real manager's seed id (e.g. `u_real_manager`) |
+| `AGENT_RATE_LIMIT_PER_HOUR` | (optional) per-manager agent-call budget, default `30` |
 
 Deploy. Open the Vercel URL → log in as **Maria** → create a questionnaire (calls the Cloud Run
 agent) → submit a response → generate a review. Full path, live.

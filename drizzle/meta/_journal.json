@@ -57,6 +57,13 @@
       "when": 1782872477521,
       "tag": "0007_friendly_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1782932990848,
+      "tag": "0008_add_is_test_user",
+      "breakpoints": true
     }
   ]
 }

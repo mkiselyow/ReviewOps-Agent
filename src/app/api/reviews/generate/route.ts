@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { requireManager, toErrorResponse, ok } from "@/server/http";
+import {
+  requireManager,
+  assertAgentRateLimit,
+  toErrorResponse,
+  ok,
+} from "@/server/http";
 import { orchestrateReviewGeneration } from "@/server/agents/orchestrator";
 import { logAudit } from "@/server/services/auditService";
 
@@ -13,6 +18,7 @@ export async function POST(req: Request) {
   try {
     const manager = await requireManager();
     actorId = manager.id;
+    assertAgentRateLimit(manager.id);
     const { employeeId, period } = bodySchema.parse(await req.json());
 
     const result = await orchestrateReviewGeneration(manager.id, employeeId, period);

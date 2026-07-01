@@ -22,6 +22,14 @@ export async function listAllUsers(): Promise<User[]> {
   return db.select().from(users).all();
 }
 
+/**
+ * Demo/test users only (the one-click login switcher). Real users are hidden
+ * from the public login page and reach the app via passphrase login.
+ */
+export async function listDemoUsers(): Promise<User[]> {
+  return db.select().from(users).where(eq(users.isTestUser, true)).all();
+}
+
 export async function getDirectReports(managerId: string): Promise<User[]> {
   return db.select().from(users).where(eq(users.managerId, managerId)).all();
 }

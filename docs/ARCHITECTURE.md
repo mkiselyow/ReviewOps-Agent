@@ -303,8 +303,8 @@ SA, never in the image or the repo.
 | 1 Infra & networking | local dev; Cloud Run/Agent Runtime later | gVisor sandbox, egress governance |
 | 2 Data | SQLite, consent gate, **PII redaction before model** | CMEK/mTLS, tenant partitioning |
 | 3 Model | prompts as versioned constants; structured schemas | signed/attested prompt artifacts |
-| 4 App & runtime | **no secrets in frontend**, RBAC, deterministic privacy filter, safety agent | LLM firewall, lifecycle hooks, MCP contextual auth |
-| 5 IAM | mock session now; access checks before model | agentic identity (SPIFFE), JIT downscoping |
+| 4 App & runtime | **no secrets in frontend**, RBAC, deterministic privacy filter, safety agent, **agent shared-secret + per-manager rate limit** | LLM firewall, lifecycle hooks, MCP contextual auth |
+| 5 IAM | **signed (HMAC) sessions** + passphrase manager login; demo/real split via `isTestUser`; access checks before model | OAuth / email-allowlist + magic link, agentic identity (SPIFFE), JIT downscoping |
 | 6 Observability & SecOps | audit log | **OpenTelemetry traces** (ADK built-in), ABA, red/blue/green |
 | 7 Governance | audit trail; **HITL approval = "Vibe Diff" logic review** | EU AI Act impact assessment, attestation |
 
@@ -312,6 +312,23 @@ Notably already aligned: **access control before the model**, **pre-LLM PII
 redaction**, **human-in-the-loop approval** (the whitepaper's "Vibe Diff" — show
 the human plain-language intent→action before consent), and **no
 prompt-based security**.
+
+### 4.1a Authentication & abuse protection (real-use hardening)
+The demo keeps one-click login for synthetic (`isTestUser`) users, but real use
+adds three layers:
+- **Tamper-proof sessions.** The session cookie is `uid|HMAC-SHA256(uid,
+  SESSION_SECRET)` (`auth/mockSession.ts`); a forged/plaintext cookie fails
+  verification, so a client can't mint a manager session. RBAC only *scopes* an
+  identity — signing is what makes the identity trustworthy.
+- **Demo vs real split.** `isTestUser` gates the login switcher and the
+  passwordless `/api/login`; real accounts (flag false) are hidden and reachable
+  only via `POST /api/login/passphrase` (constant-time compare of
+  `MANAGER_PASSPHRASE`, throttled). OAuth / magic-link is the roadmap upgrade.
+- **Agent abuse / quota.** The public Cloud Run agent requires a shared
+  `X-Agent-Key` (only our backend has it) → strangers get 401 before any Gemini
+  call; expensive endpoints are additionally rate-limited per manager. (CORS is
+  deliberately *not* relied on — it's browser-only and useless against direct
+  HTTP clients.)
 
 ### 4.2 Evaluation (FILE1 dimensions × methods)
 

@@ -18,9 +18,15 @@ function baseUrl(): string {
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  // Shared secret so only this backend can reach the (public) agent service and
+  // strangers can't drain the Gemini quota. Set on both Vercel and Cloud Run.
+  const agentKey = process.env.AGENT_SHARED_SECRET;
+  if (agentKey) headers["X-Agent-Key"] = agentKey;
+
   const res = await fetch(`${baseUrl()}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
   if (!res.ok) {

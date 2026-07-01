@@ -2,6 +2,7 @@ import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { eq } from "drizzle-orm";
 import { db } from "./index";
 import {
   users,
@@ -31,6 +32,9 @@ type SeedUser = {
   managerId: string | null;
   employmentStatus: string;
   isHrAdmin: boolean;
+  /** Demo users (true) show in the one-click switcher; real users (false) are
+   *  hidden and passphrase-gated. Defaults to true for legacy seed rows. */
+  isTestUser?: boolean;
 };
 
 type SeedGoal = {
@@ -82,8 +86,29 @@ export async function seedDatabase(): Promise<{
   const seedGoals = readJson<SeedGoal[]>("data/seed/goals.json");
   const seedEvidence = readJson<SeedEvidence[]>("data/seed/sample-evidence.json");
 
+  // Guard: seeding is destructive (clears everything). Once REAL colleagues have
+  // responded, their questionnaires belong to a non-test manager — refuse to wipe
+  // those unless explicitly forced, so a stray `npm run seed` can't nuke real data.
+  if (process.env.SEED_FORCE !== "1") {
+    const realQuestionnaires = await db
+      .select({ id: questionnaires.id })
+      .from(questionnaires)
+      .innerJoin(users, eq(questionnaires.createdByManagerId, users.id))
+      .where(eq(users.isTestUser, false))
+      .all();
+    if (realQuestionnaires.length > 0) {
+      throw new Error(
+        `Refusing to reseed: ${realQuestionnaires.length} questionnaire(s) owned by a ` +
+          `real (non-test) manager exist and would be deleted. Set SEED_FORCE=1 to override.`,
+      );
+    }
+  }
+
   await clearDatabase();
-  await db.insert(users).values(seedUsers).run();
+  await db
+    .insert(users)
+    .values(seedUsers.map((u) => ({ ...u, isTestUser: u.isTestUser ?? false })))
+    .run();
   await db.insert(goals).values(seedGoals).run();
   await db.insert(evidenceItems).values(seedEvidence).run();
   await db

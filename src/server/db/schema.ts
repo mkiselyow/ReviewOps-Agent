@@ -110,6 +110,9 @@ export const users = sqliteTable("users", {
   managerId: text("manager_id"),
   employmentStatus: text("employment_status").notNull().default("active"),
   isHrAdmin: integer("is_hr_admin", { mode: "boolean" }).notNull().default(false),
+  // Demo/test users appear in the one-click login switcher and need no auth;
+  // real users (flag false) are hidden and reachable only via passphrase login.
+  isTestUser: integer("is_test_user", { mode: "boolean" }).notNull().default(false),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

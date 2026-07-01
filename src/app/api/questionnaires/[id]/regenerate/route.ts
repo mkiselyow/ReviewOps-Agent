@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { requireManager, toErrorResponse, ok } from "@/server/http";
+import {
+  requireManager,
+  assertAgentRateLimit,
+  toErrorResponse,
+  ok,
+} from "@/server/http";
 import { orchestrateQuestionnaireRegeneration } from "@/server/agents/orchestrator";
 import { logAudit } from "@/server/services/auditService";
 
@@ -13,6 +18,7 @@ export async function POST(
   try {
     const manager = await requireManager();
     actorId = manager.id;
+    assertAgentRateLimit(manager.id);
     const { id } = await ctx.params;
 
     const raw = await req.json().catch(() => ({}));

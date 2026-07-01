@@ -103,6 +103,20 @@ authorization; EU AI Act governance/attestation (Pillar 7).
 - ⬜ Wire the eval run into CI; chase the two residual flakes (Vertex autorater
   JSON parse; review-draft markdown-fence, ADK-retry-covered).
 
+### G. Authentication & abuse protection
+- ✅ **Real-use hardening shipped:** HMAC-**signed sessions** (anti-forgery),
+  `isTestUser` demo/real split, **passphrase** manager login (throttled),
+  **agent shared-secret** (`X-Agent-Key`) + **per-manager rate limit**, and a
+  destructive-reseed guard for real data.
+- ⬜ **OAuth / Google sign-in** with an **email allowlist** (Auth.js) and/or
+  **email magic link** — replace the single passphrase with per-person identity.
+- ⬜ **Durable rate limiting** (Upstash/Redis) for a hard *global* quota cap
+  (in-memory limiter is per-instance on serverless).
+- ⬜ **Cloud Run IAM + OIDC ID token** — make the agent private and have the
+  frontend attach a Google-signed token (drop `--allow-unauthenticated`).
+- ⬜ Non-destructive `seed:demo` (upsert demo rows only); optional **separate DB**
+  for real colleague data (privacy isolation).
+
 ## Phase 2 — Slack Delivery
 
 Replace mock outbox with Slack workflow.

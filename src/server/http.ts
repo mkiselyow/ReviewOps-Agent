@@ -7,6 +7,7 @@ import {
 } from "./auth/permissions";
 import { logAudit } from "./services/auditService";
 import { isManager } from "./services/hrisService";
+import { rateLimit } from "./rateLimit";
 import type { User } from "./db/schema";
 
 /**
@@ -20,6 +21,22 @@ export async function requireManager(): Promise<User> {
     throw new PermissionError("Manager access required");
   }
   return user;
+}
+
+/**
+ * Throttle expensive, agent-backed actions per manager to protect the Gemini
+ * quota (secondary guard — the agent's shared secret already blocks strangers).
+ * Throws 429 when the hourly budget is exceeded. Budget via
+ * AGENT_RATE_LIMIT_PER_HOUR (default 30).
+ */
+export function assertAgentRateLimit(userId: string): void {
+  const max = Number(process.env.AGENT_RATE_LIMIT_PER_HOUR ?? 30);
+  if (!rateLimit(`agent:${userId}`, max, 60 * 60_000).allowed) {
+    throw new PermissionError(
+      "Rate limit exceeded — too many agent requests this hour",
+      429,
+    );
+  }
 }
 
 /** Maps domain errors to HTTP responses and audits denied access. */

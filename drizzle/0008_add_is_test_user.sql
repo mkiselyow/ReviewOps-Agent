@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `is_test_user` integer DEFAULT false NOT NULL;

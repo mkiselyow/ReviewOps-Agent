@@ -12,6 +12,7 @@ with telemetry + GCP auth). The Next.js app calls these endpoints via
 Run:  uvicorn app.local_server:app --host 127.0.0.1 --port 8800
 """
 
+import hmac
 import json
 import os
 import uuid
@@ -52,7 +53,7 @@ if not os.environ.get("DISABLE_LOCAL_OTEL"):
     _provider.add_span_processor(SimpleSpanProcessor(_ConciseConsoleExporter()))
     _otel_trace.set_tracer_provider(_provider)
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Header, HTTPException
 from google.adk.apps import App
 from google.adk.runners import InMemoryRunner
 from google.genai import types
@@ -100,24 +101,36 @@ async def run_workflow(workflow, payload: dict) -> dict:
 app = FastAPI(title="reviewops-agent-local")
 
 
+def require_agent_key(x_agent_key: str | None = Header(default=None)) -> None:
+    """Shared-secret gate. When AGENT_SHARED_SECRET is set (deployed), every
+    workflow call must present a matching `X-Agent-Key` header — so only our
+    backend can reach this service and strangers can't drain the Gemini quota.
+    When unset (local dev), the check is skipped."""
+    expected = os.environ.get("AGENT_SHARED_SECRET")
+    if not expected:
+        return
+    if not x_agent_key or not hmac.compare_digest(x_agent_key, expected):
+        raise HTTPException(status_code=401, detail="invalid or missing X-Agent-Key")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
-@app.post("/questionnaire")
+@app.post("/questionnaire", dependencies=[Depends(require_agent_key)])
 async def questionnaire(body: dict):
     """Generate + safety-review a questionnaire. Body: QuestionnaireInput-ish."""
     return await run_workflow(questionnaire_workflow, body)
 
 
-@app.post("/evidence")
+@app.post("/evidence", dependencies=[Depends(require_agent_key)])
 async def evidence(body: dict):
     """Validate evidence + confidence-gated routing. Body: EvidenceInput."""
     return await run_workflow(evidence_workflow, body)
 
 
-@app.post("/review")
+@app.post("/review", dependencies=[Depends(require_agent_key)])
 async def review(body: dict):
     """Generate a grounded review draft + fairness report. Body: ReviewContextInput."""
     return await run_workflow(review_workflow, body)
