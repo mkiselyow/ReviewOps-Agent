@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 type Item = {
   id: string;
   employeeName: string;
+  sourceText: string | null;
   summary: string;
   impact: string | null;
+  concern: string | null;
   companyValue: string | null;
   qualityScore: number | null;
   confidence: number | null;
@@ -47,12 +49,37 @@ export default function EvidenceReviewQueue({ items }: { items: Item[] }) {
             <strong>{it.employeeName}</strong>
             <span className="badge">
               quality {it.qualityScore != null ? it.qualityScore.toFixed(2) : "—"}
+              {it.confidence != null ? ` · conf ${it.confidence.toFixed(2)}` : ""}
               {it.companyValue ? ` · ${it.companyValue}` : ""}
             </span>
           </div>
-          <div style={{ marginTop: 6 }}>{it.summary}</div>
+
+          {/* Raw evidence, in the employee's own words, for transparency. */}
+          {it.sourceText && (
+            <blockquote
+              className="small"
+              style={{
+                margin: "8px 0 0",
+                paddingLeft: 10,
+                borderLeft: "3px solid var(--border, #555)",
+                fontStyle: "italic",
+              }}
+            >
+              “{it.sourceText}”
+            </blockquote>
+          )}
+
+          {/* The agent's read on it. */}
+          <div className="small muted" style={{ marginTop: 8 }}>
+            <strong>Agent summary:</strong> {it.summary}
+          </div>
           {it.impact && (
-            <div className="small muted" style={{ marginTop: 4 }}>Impact: {it.impact}</div>
+            <div className="small muted" style={{ marginTop: 2 }}>Impact: {it.impact}</div>
+          )}
+          {it.concern && (
+            <div className="small" style={{ marginTop: 4 }}>
+              ⚠ <strong>Concern:</strong> {it.concern}
+            </div>
           )}
           {done[it.id] ? (
             <div

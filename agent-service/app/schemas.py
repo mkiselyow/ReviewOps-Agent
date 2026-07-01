@@ -14,6 +14,9 @@ QuestionType = Literal[
     "single_choice",
     "multi_choice",
     "rating",
+    "number",
+    "date",
+    "email",
     "evidence_link",
     "attachment",
 ]
@@ -35,21 +38,57 @@ class QuestionnaireInput(BaseModel):
     company_values: list[str] = Field(default_factory=list)
     role_expectations: list[str] = Field(default_factory=list)
     notes: str | None = None
+    # Manager's "require evidence" toggle. When False, no question demands a
+    # supporting artifact (evidence_required stays False everywhere).
+    require_evidence: bool = True
 
 
 class GeneratedQuestion(BaseModel):
     position: int
     question_type: QuestionType
     text: str
+    # Choices for single_choice / multi_choice / rating questions (e.g. an
+    # L1..L5 skill scale). Empty for free-text question types.
+    options: list[str] = Field(default_factory=list)
     explanation: str = ""
     required: bool = True
+    # Whether THIS question expects a supporting link/artifact as evidence.
+    # Only set True when the manager asked for evidence (require_evidence).
+    evidence_required: bool = False
+    # Grouping heading (e.g. "Frameworks & Libraries"); empty string = ungrouped.
+    # (Kept non-nullable: Gemini's response_schema rejects nullable/anyOf fields.)
+    section: str = ""
+    # Marks a section's yes/no opt-in gate: when answered negatively, the other
+    # questions in the same section are hidden (progressive disclosure).
+    opt_in: bool = False
+
+
+class ScaleLevel(BaseModel):
+    """One level of a shared rating scale (e.g. 'L1 - Awareness' + its full
+    description). Listed once in `scale_legend` so the descriptions are not
+    repeated inside every question's options."""
+
+    label: str
+    description: str = ""
 
 
 class QuestionnaireOutput(BaseModel):
     title: str
     purpose: str
     privacy_mode: PrivacyMode = "named_review_evidence"
-    questions: list[GeneratedQuestion] = Field(min_length=5, max_length=7)
+    # Set when the request is DOMINATED by protected/sensitive topics: the agent
+    # refuses to generate (empty `questions`) and explains why in refusal_reason.
+    refused: bool = False
+    refusal_reason: str = ""
+    # When questions share a rating scale, the full level descriptions live here
+    # ONCE; each question's `options` then carry only the short labels.
+    scale_legend: list[ScaleLevel] = Field(default_factory=list)
+    # Dynamic length: a short narrative survey is ~5-7, but a structured matrix
+    # (one question per skill, plus section gates) can be much longer. NOTE: do
+    # NOT set max_length here — a large maxItems makes Gemini's structured-output
+    # decoder reject the schema ("too many states for serving"). Length is driven
+    # by the prompt instead.
+    questions: list[GeneratedQuestion]
 
 
 # --- Questionnaire safety review ---------------------------------------------

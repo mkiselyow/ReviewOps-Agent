@@ -5,7 +5,7 @@ import { seedDatabase } from "../src/server/db/seed";
 
 /** Reset to the synthetic demo dataset before each test. */
 export function reseed() {
-  seedDatabase();
+  return seedDatabase();
 }
 
 /** Demo user ids (see data/seed/employees.json). */
@@ -19,10 +19,14 @@ export const USERS = {
 } as const;
 
 /** Read the stored token hash for an assignment (to assert raw token is not stored). */
-export function getStoredTokenHash(assignmentId: string): string | undefined {
-  return db
-    .select()
-    .from(surveyAssignments)
-    .where(eq(surveyAssignments.id, assignmentId))
-    .get()?.tokenHash;
+export async function getStoredTokenHash(
+  assignmentId: string,
+): Promise<string | undefined> {
+  return (
+    await db
+      .select()
+      .from(surveyAssignments)
+      .where(eq(surveyAssignments.id, assignmentId))
+      .get()
+  )?.tokenHash;
 }

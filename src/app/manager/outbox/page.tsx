@@ -10,7 +10,7 @@ export default async function OutboxPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const messages = getOutboxForManager(user.id);
+  const messages = await getOutboxForManager(user.id);
 
   return (
     <Layout user={user}>

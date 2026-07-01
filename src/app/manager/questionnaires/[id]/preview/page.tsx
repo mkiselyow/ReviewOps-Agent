@@ -21,7 +21,7 @@ export default async function PreviewPage({
   if (!user) redirect("/login");
   const { id } = await params;
 
-  const questionnaire = getQuestionnaire(id);
+  const questionnaire = await getQuestionnaire(id);
   if (!questionnaire || questionnaire.createdByManagerId !== user.id) {
     return (
       <Layout user={user}>
@@ -30,7 +30,7 @@ export default async function PreviewPage({
     );
   }
 
-  const questions = getQuestions(id);
+  const questions = await getQuestions(id);
   // Safety review was captured at generation time.
   const safety: SafetyReport = questionnaire.safetyJson
     ? JSON.parse(questionnaire.safetyJson)
@@ -43,11 +43,22 @@ export default async function PreviewPage({
         title={questionnaire.title}
         purpose={questionnaire.purpose}
         status={questionnaire.status}
+        scaleLegend={
+          questionnaire.scaleLegendJson
+            ? (JSON.parse(questionnaire.scaleLegendJson) as {
+                label: string;
+                description: string;
+              }[])
+            : []
+        }
         questions={questions.map((q) => ({
           id: q.id,
           position: q.position,
           questionType: q.questionType,
           text: q.text,
+          options: q.optionsJson ? (JSON.parse(q.optionsJson) as string[]) : [],
+          section: q.section,
+          evidenceRequired: q.evidenceRequired,
           explanation: q.explanation,
         }))}
         safety={safety}

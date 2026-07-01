@@ -55,13 +55,20 @@ It demonstrates:
 
 - multi-agent orchestration (ADK 2.0 graph `Workflow`s);
 - tool-mediated data access; on-demand `SkillToolset` skills;
-- structured questionnaire generation;
-- evidence validation with **confidence-gated routing** (auto-approve vs manager review);
+- **dynamic, manager-driven questionnaire generation** (per-item matrix, sections,
+  opt-in gates, shared rating-scale legend, typed inputs) with a **deterministic
+  output normalizer** enforcing invariants on the model output, plus
+  refine-and-regenerate;
+- evidence validation with **confidence-gated routing** + **confirm-before-store /
+  dedup / lock** for self-submitted evidence;
+- a **mock MCP/connector boundary** (BambooHR/Lattice-shaped contracts) whose peer
+  reviews / feedback / 1:1 notes **transiently** ground review drafts;
 - privacy filtering before model calls (pre-LLM security node);
 - permission-aware data retrieval;
 - human-in-the-loop approval (the whitepaper's "Vibe Diff" logic review);
 - review grounding and fairness evaluation;
-- observability (OpenTelemetry traces) and a defined evaluation framework;
+- observability (OpenTelemetry traces) and an applied evaluation framework
+  (`agents-cli eval` golden datasets + LLM-as-judge);
 - audit logging.
 
 ## Agents
@@ -100,16 +107,21 @@ Minimizes and sanitizes context before any model call.
 
 ## Tools and Connectors
 
-The MVP uses mock connectors for reproducibility and privacy.
+The MVP uses mock connectors for reproducibility and privacy, but behind
+**typed, vendor-neutral contracts** so a real API or MCP server can swap in.
 
 - Mock HRIS connector for employees, manager relationships, goals, and roles.
+- **`src/server/connectors/`** — BambooHR-shaped `DirectoryConnector` + Lattice-
+  shaped `PerformanceConnector` (peer reviews, feedback, 1:1 notes, goals) with a
+  mock provider; `gatherReviewSignals` folds these into review grounding.
 - Survey tools for questionnaires, assignments, tokens, and responses.
-- Evidence tools for evidence cards and quality scores.
+- Evidence tools for evidence cards, quality scores, and the confirm/dedup/lock flow.
 - Review tools for draft generation, approval, and export.
 - Privacy tools for context minimization and PII redaction.
 - Audit tools for sensitive events.
 
-Future adapters can replace mock HRIS with Lattice or BambooHR, and mock outbox with Slack.
+Future work replaces the mock provider with a real Lattice/BambooHR adapter (or
+MCP server) behind the same interface, and mock outbox with Slack.
 
 ## Security and Privacy
 
@@ -142,16 +154,26 @@ The demo shows a manager named Maria creating a Q2 collaboration and ownership s
 
 ## Evaluation
 
-The project includes tests and manual checks for:
+**50 Vitest tests** cover the TS app (access control, token security, consent
+gate, questionnaire normalizer invariants, survey-form logic + RTL component
+tests, evidence confirm/dedup/lock, connector contracts + review grounding). The
+Python agents are evaluated with **`agents-cli eval`**: golden datasets for all
+three workflows (`reviewops-questionnaire/evidence/review.json`) scored by
+**LLM-as-judge** rubrics (`questionnaire_quality`, `evidence_quality`,
+`review_quality`) + a trajectory metric, with a no-GCP `structural_smoke.py` for
+deterministic structural checks against the live service. (Running the LLM-judge
+suites needs Vertex AI Eval Service + GCS.) The framework applies the *Vibe Coding
+Agent Security and Evaluation* dimensions: intent satisfaction, functional
+correctness, trajectory quality, safety, and cost — with Read→Draft→Act
+graduation and `pass^k` for the auto-approve evidence path.
 
-- manager/direct-report access control;
-- token security;
-- questionnaire generation;
-- questionnaire safety;
-- evidence validation;
-- review draft grounding;
-- fairness warnings;
-- audit logging.
+The suites were **run on Vertex** and earned their keep: baseline scores were
+evidence 5.0 / review 5.0 / questionnaire 4.43, and the questionnaire run exposed
+a genuine safety gap — a request dominated by protected topics was silently
+substituted with safe questions and reported "approved." We fixed it with a
+**hard-refuse** path (refuse + `needs_revision` + reason, never a laundered
+"all-clear") and re-verified via `agents-cli eval compare`: that case went 1/5 →
+5/5 and the suite mean rose to 5.00.
 
 ## Limitations
 

@@ -149,9 +149,65 @@ flowchart LR
 
 | Workflow | Nodes | Status |
 | --- | --- | --- |
-| Questionnaire | `questionnaire_agent → safety_agent` | ✅ working, validated vs Gemini |
-| Evidence | `security_node → evidence_validator → finalize_node` (confidence routing) | 🟡 WIP (REST validation pending) |
-| Review | `privacy_node → review_draft_agent → fairness_grounding_agent` | ⬜ to build |
+| Questionnaire | `questionnaire_agent → safety_agent` | ✅ live via REST; dynamic structure + scale legend |
+| Evidence | `security_node → evidence_validator → finalize_node` (confidence routing) | ✅ live via REST; confidence-gated routing |
+| Review | `privacy_node → review_draft_agent → fairness_node` | ✅ live via REST; grounded + fairness report |
+
+All three run live against Gemini (`gemini-2.5-flash`) via the local REST server
+(`app/local_server.py`) and are wired into the TS app over `AGENT_SERVICE_URL`.
+
+### 2.1 Dynamic questionnaires (manager-driven)
+
+The questionnaire generator reproduces whatever structure the manager describes
+rather than emitting a fixed survey:
+- **Per-item questions** — a list of skills/competencies becomes one question
+  each (no summarizing); a given rating scale (e.g. L1–L5) becomes a
+  `single_choice` with the levels as `options`.
+- **Sections + opt-in gates** — named groups render together; an "answer yes to
+  reveal" rule becomes a `single_choice` Yes/No gate (`opt_in`) that conditionally
+  shows its section.
+- **Scale legend** — when many questions share a rating scale, the full level
+  descriptions are emitted **once** in `scale_legend` (`{label, description}`);
+  each question's `options` carry only short labels, rendered with one collapsible
+  legend (manager preview + employee survey).
+- **Question types** — `short_text`, `long_text`, `single_choice`, `multi_choice`,
+  `rating`, `number`, `date`, `email`, `evidence_link`, `attachment`.
+- **Per-question evidence** — the manager's "require evidence" toggle gates
+  `evidence_required`, set only on free-text questions (never on choice/typed
+  fields); no standalone "paste a link" questions.
+- **Deterministic normalizer** — `src/server/agents/normalizeQuestions.ts`
+  enforces these invariants on the (untrusted) model output *before* persistence:
+  strip evidence from non-text fields, drop empty choices (degrade to text),
+  clear stray gates, coerce unknown types.
+- **Refine & regenerate** — a manager can give free-text feedback on a *draft*
+  and re-run the agent in place (`orchestrateQuestionnaireRegeneration`); the
+  original request is stored (`gen_input_json`) and feedback accumulates.
+- **Hard-refuse on prohibited requests** — if a request is *dominated* by
+  protected topics (health, family, religion, politics, …), the agent refuses
+  (`refused: true`, no questions) and the safety verdict is `needs_revision` with
+  the reason — it is **not** silently substituted and reported "approved."
+  (Surfaced by `agents-cli eval`; see EVALUATION_PLAN §2.4.)
+
+### 2.1a Ambient — deadlines & reminders
+
+A questionnaire can carry a `deadline`. The manager dashboard shows per-questionnaire
+completion (submitted/total) and flags **overdue** ones; **"Send reminders"**
+(`remindersService.sendReminders`) writes nudge rows to the mock outbox
+(`channel:"reminder"`) for outstanding respondents, de-duped within a window. This
+is the seam a real Slack/email delivery or a **Cloud Scheduler → `/api/cron/reminders`**
+job would drive for fully event-driven nudges.
+
+### 2.2 Evidence submission (confirm-before-store + improve-loop)
+
+On standalone evidence submit, the validator scores it and:
+- **strong** → stored `auto_approved`; **weak** → the employee gets the follow-up
+  and must **improve or explicitly "submit anyway for manager review"**
+  (weak evidence is not silently stored);
+- **dedup + lock** — while unreviewed, a resubmit *updates the same item* (no
+  duplicates); once a manager approves/rejects it is locked and a new submission
+  is a new item;
+- the **raw text** (`source_text`) and the validator's **concern** are stored for
+  manager transparency.
 
 ### Main request flow (review generation)
 
@@ -184,9 +240,42 @@ sequenceDiagram
 
 | Layer | TypeScript app | Python agent service |
 | --- | --- | --- |
-| Tools | hris / survey / evidence / review / **privacy** facades | ADK `FunctionTool`s; `SkillToolset` for skills |
+| Tools | hris / survey / evidence / review / **privacy** / **connectors** facades | ADK `FunctionTool`s; `SkillToolset` for skills |
 | Services own permission checks | yes (before model) | n/a (receives authorized context) |
 | State | SQLite (Drizzle), local files (`data/exports`) | ADK session/state (graph), stateless REST |
+
+### 3.1 External HR connectors (BambooHR / Lattice boundary)
+
+`src/server/connectors/` defines vendor-neutral **data contracts** that mirror
+real provider APIs — a BambooHR-shaped `DirectoryConnector` (employees/org graph)
+and a Lattice-shaped `PerformanceConnector` (peer reviews, feedback, 1:1 notes,
+goals). A **mock provider** implements them today; a live API or **MCP server**
+can swap in behind the same async interface — callers depend only on the contract.
+
+`gatherReviewSignals(managerId, employeeId, cycle)` adapts peer reviews / feedback
+/ 1:1 notes into evidence-shaped, **citeable** grounding signals for the review
+draft (ids like `peer:…`, `fb:…`, `1on1:…`).
+
+> **Privacy posture (important):** connector signals are **fetched transiently**
+> at review-generation time and **never stored** in ReviewOps — only the final
+> review draft is saved. They pass the same **deterministic PII filter** as
+> internal evidence, and peer reviews are **reviewer-anonymized** (only the
+> comment is passed, never the reviewer's identity). The employee
+> `allow_for_review` consent gate governs **self-submitted** evidence; manager/
+> HR-owned records (1:1 notes, collected peer reviews) are not employee-gated, by
+> design — the manager already legitimately has them.
+
+### 3.2 Data layer & deployment
+
+The frontend's DB is **dual-driver** (`src/server/db/index.ts`): **better-sqlite3**
+(synchronous, file-based) for local dev + tests, and **Turso / libSQL** (async,
+hosted) when `TURSO_DATABASE_URL` is set (serverless / Vercel). The whole data
+layer is `async`, so the same code drives both drivers.
+
+Deployment (see `docs/DEPLOY.md`): the **stateless Python agent service → Cloud
+Run** (serving the REST contract, in Vertex mode with no API key — the runtime
+service account authenticates via ADC); the **Next.js frontend → Vercel** with the
+Turso DB. Backend is live and verified.
 
 ---
 
@@ -222,6 +311,15 @@ position-swap + human calibration), **trajectory inspection** via OpenTelemetry,
 TS Vitest for permissions/tokens/results. Apply the **Read → Draft → Act**
 graduation and `pass^k` for action-allowed flows (e.g. auto-approving evidence).
 
+Golden datasets exist for **all three workflows** under
+`agent-service/tests/eval/datasets/` (`reviewops-questionnaire.json`,
+`reviewops-evidence.json`, `reviewops-review.json`) with matching rubrics in
+`eval_config.yaml` (`questionnaire_quality`, `evidence_quality`, `review_quality`,
++ an `agent_turn_count` trajectory metric). Authoring is done; **running
+`agents-cli eval generate/grade` needs GCP** (Vertex AI Eval Service + GCS ADC).
+A no-GCP `tests/eval/structural_smoke.py` covers deterministic structural checks
+against the live REST service in the meantime.
+
 ### 4.3 Observability (FILE1)
 
 ADK 2.0 + Agent Engine emit OpenTelemetry spans (`agent.session`, `agent.think`,
@@ -250,11 +348,11 @@ Source of truth: `src/server/db/schema.ts`. Tables:
 | --- | --- | --- |
 | `users` | email, display_name, role_title, **manager_id**, is_hr_admin | mock HRIS is the source of truth for identity/manager/role |
 | `goals` | employee_id, title, period, status | official goals per period |
-| `questionnaires` | created_by_manager_id, period, **privacy_mode**, status | statuses: draft→approved→sent→closed→archived; privacy modes: `named_review_evidence` (MVP), `anonymous_team_pulse`, `confidential_hr_only` |
-| `questions` | questionnaire_id, position, question_type, required, explanation | types: short_text, long_text, single_choice, multi_choice, rating, evidence_link, attachment |
+| `questionnaires` | created_by_manager_id, period, **deadline**, **privacy_mode**, **evidence_validation**, safety_json, **scale_legend_json**, **gen_input_json**, status | statuses: draft→approved→sent→closed→archived; privacy modes: `named_review_evidence` (MVP), `anonymous_team_pulse`, `confidential_hr_only`. `scale_legend_json` = shared rating scale; `gen_input_json` = original request (for regenerate) |
+| `questions` | questionnaire_id, position, question_type, **options_json**, required, **evidence_required**, **section**, **opt_in**, explanation | types: short_text, long_text, single_choice, multi_choice, rating, **number, date, email**, evidence_link, attachment. `section` + `opt_in` drive grouped/conditional rendering |
 | `survey_assignments` | questionnaire_id, respondent_id, **token_hash**, expires_at, status | statuses: pending, opened, submitted, expired, revoked |
 | `responses` | assignment_id, question_id, answer_text, **visibility** | visibility: private_draft, share_with_manager, **allow_for_review**, anonymous_aggregate |
-| `evidence_items` | employee_id, source_type, summary, impact, period, company_value, goal_id, quality_score, **confidence**, visibility | **planned: add `status`** (draft/pending_review/approved/rejected/auto_approved) for the standalone evidence flow + confidence-gated routing |
+| `evidence_items` | employee_id, source_type, **source_text**, summary, impact, **concern**, period, company_value, goal_id, quality_score, **confidence**, visibility, **status** | `status`: draft/pending_review/approved/rejected/auto_approved (confidence-gated routing). `source_text` = raw employee words; `concern` = validator's note (manager transparency) |
 | `attachments` | evidence_id, file_path, pii_scan_status | metadata-only / local upload in MVP |
 | `review_drafts` | employee_id, manager_id, period, draft_markdown, grounding_report_json, fairness_report_json, status | statuses: draft, needs_revision, approved, exported |
 | `outbox` | questionnaire_id, respondent_id, assignment_id, link | mock delivery (stands in for Slack/email) |
@@ -296,13 +394,16 @@ low-confidence evidence.
 
 ## 9. Testing & verification
 
-- **TS Vitest** (`tests/`): manager cannot view outside-team employee; token
-  hash stored (not raw); expired token denied; cross-assignment isolation;
-  questionnaire schema valid; sensitive question rejected; vague answer →
-  follow-up; review cites evidence; unsupported claim flagged; consent gate.
+- **TS Vitest** (`tests/`, **50 tests**): permissions/scope; token hash stored
+  (not raw); expired token denied; cross-assignment isolation; questionnaire
+  schema valid; sensitive question rejected; vague answer → follow-up; review
+  cites evidence; unsupported claim flagged; consent gate; **normalizer
+  invariants**; **survey-form logic** + **RTL component tests** (jsdom);
+  **evidence confirm-before-store / dedup / lock**; **connector** contracts +
+  `gatherReviewSignals`; connector-grounded review context.
 - **Python agent service:** `agents-cli eval` golden datasets + LLM-as-judge +
-  trajectory inspection (see §4.2). `agents-cli playground` / REST for manual
-  validation.
+  trajectory inspection (see §4.2); `tests/eval/structural_smoke.py` for
+  no-GCP structural checks; `agents-cli playground` / REST for manual validation.
 
 ## 10. References
 - Google (May 2026), *Vibe Coding Agent Security and Evaluation*.

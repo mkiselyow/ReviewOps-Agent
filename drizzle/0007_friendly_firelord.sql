@@ -1,0 +1,1 @@
+ALTER TABLE `questionnaires` ADD `deadline` text;

@@ -63,18 +63,22 @@ Create a Q2 collaboration and ownership evidence survey for my direct reports. I
 
 3. Select period: `2026-Q2`.
 4. Submit.
-5. Show generated questionnaire:
-   - title;
-   - purpose;
-   - privacy mode;
-   - questions;
-   - explanation for each question.
-6. Show Questionnaire Safety Agent result.
-7. Approve questionnaire.
+5. Show generated questionnaire (title, purpose, privacy mode, questions + an
+   explanation each), then the Safety Agent result.
+6. **(Highlight — dynamic generation)** Create a second questionnaire and *paste a
+   structure* in the notes: a skill list + an L1–L5 scale + two opt-in sections.
+   Show it produced a **per-skill matrix** with dropdowns, grouped sections, opt-in
+   gates, and **one shared rating-scale legend** (not the scale repeated on every
+   skill). Mention number/date/email question types.
+7. **(Highlight — refine)** Use **Refine & regenerate** with feedback (e.g. "drop
+   Angular, add Svelte") to rebuild the draft in place. Then approve.
 
 Key message:
 
-> The manager does not manually write the survey from scratch. The Questionnaire Agent proposes it, the Safety Agent reviews it, and the manager approves before anything is sent.
+> The manager doesn't hand-write the survey. The agent reproduces whatever
+> structure the manager describes — a short evidence survey or a full skill matrix
+> — the Safety Agent reviews it, the manager can refine it in natural language,
+> and nothing is sent until approval.
 
 ## Scene 3 — Personal Token Links
 
@@ -128,6 +132,21 @@ Key message:
 
 > ReviewOps turns free-text answers into structured, review-ready evidence cards.
 
+## Scene 5b — Standalone Evidence + Weak-Confirm
+
+1. Log in as **Anna** → **My evidence** → **Add evidence**.
+2. Type a thin entry ("I'm awesome"). Show it is **not saved** — the validator
+   returns a follow-up and asks her to **improve or "submit anyway for manager
+   review."**
+3. Submit anyway → it lands in the manager's queue as `pending_review`. Then edit
+   to a strong entry and resubmit — show it **updates the same item** (no
+   duplicate) and **auto-approves**.
+
+Key message:
+
+> Weak evidence isn't silently stored; the employee decides. Iterating updates the
+> same item, and once a manager has reviewed it, it's locked.
+
 ## Scene 6 — Manager Views Results
 
 1. Return to Maria dashboard.
@@ -144,8 +163,12 @@ Key message:
 
 ## Scene 7 — Generate Review Draft
 
-1. Choose Anna.
-2. Generate `2026-Q2` review draft.
+1. Choose Anna. On the review-prep page, show **Evidence on file** (every item +
+   status; pending items quote the raw text + the agent's concern in the queue).
+2. Generate `2026-Q2` review draft. Note the draft is grounded in consent-gated
+   self-evidence **plus connector signals** — peer reviews, feedback, and 1:1
+   notes fetched **transiently** (not stored) from the mock BambooHR/Lattice
+   connector — cited as `[ev_…]` and `[peer:…]`.
 3. Show review draft Markdown:
    - summary;
    - achievements;

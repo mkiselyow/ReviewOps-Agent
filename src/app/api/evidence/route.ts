@@ -10,6 +10,8 @@ const bodySchema = z.object({
   text: z.string().min(1, "Evidence text is required"),
   period: z.string().optional(),
   visibility: z.enum(RESPONSE_VISIBILITY).optional(),
+  confirmWeak: z.boolean().optional(),
+  evidenceId: z.string().optional(),
 });
 
 /** An employee submits a piece of evidence directly (standalone flow). */
@@ -24,7 +26,14 @@ export async function POST(req: Request) {
       text: body.text,
       period: body.period ?? currentPeriod(),
       visibility: body.visibility,
+      confirmWeak: body.confirmWeak,
+      evidenceId: body.evidenceId,
     });
+
+    // Weak evidence isn't stored until the employee confirms — nothing to audit.
+    if (result.status === "needs_confirmation") {
+      return ok(result, 200);
+    }
 
     logAudit({
       actorId: user.id,

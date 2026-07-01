@@ -2,6 +2,44 @@
 
 This directory contains evaluation datasets for testing agent behavior.
 
+## ReviewOps datasets (one per workflow)
+
+| Dataset | Workflow | Grade with |
+| --- | --- | --- |
+| `reviewops-questionnaire.json` | questionnaire → safety | `--metrics questionnaire_quality` |
+| `reviewops-evidence.json` | security → validator → finalize | `--metrics evidence_quality` |
+| `reviewops-review.json` | privacy → draft → fairness | `--metrics review_quality` |
+
+The questionnaire prompts are natural-language manager requests. The evidence and
+review prompts are the **workflow input JSON as text** (the first node parses it),
+so they exercise the same contract the REST endpoints use.
+
+`agents-cli eval generate` runs the app's `root_agent`. Select which workflow it
+points at with the **`REVIEWOPS_ROOT_AGENT`** env var
+(`questionnaire` | `evidence` | `review`, default `questionnaire`) — no code edit
+needed. Then grade with the matching `--metrics` rubric. Example:
+
+```bash
+# Questionnaire workflow
+REVIEWOPS_ROOT_AGENT=questionnaire agents-cli eval generate \
+  --dataset tests/eval/datasets/reviewops-questionnaire.json --output traces/questionnaire/
+agents-cli eval grade --metrics questionnaire_quality --traces traces/questionnaire/
+
+# Evidence workflow
+REVIEWOPS_ROOT_AGENT=evidence agents-cli eval generate \
+  --dataset tests/eval/datasets/reviewops-evidence.json --output traces/evidence/
+agents-cli eval grade --metrics evidence_quality --traces traces/evidence/
+
+# Review workflow
+REVIEWOPS_ROOT_AGENT=review agents-cli eval generate \
+  --dataset tests/eval/datasets/reviewops-review.json --output traces/review/
+agents-cli eval grade --metrics review_quality --traces traces/review/
+```
+
+(Generate/grade use the Vertex AI Eval Service + GCS — see
+docs/EVALUATION_PLAN.md §0.2. On PowerShell, set the env var with
+`$env:REVIEWOPS_ROOT_AGENT="evidence"` before each command.)
+
 ## Running Evaluations
 
 ### Default Dataset

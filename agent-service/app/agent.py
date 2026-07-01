@@ -31,16 +31,73 @@ from google.genai import types
 from .schemas import QuestionnaireOutput, QuestionnaireWithSafety
 
 QUESTIONNAIRE_PROMPT = """You are the Questionnaire Agent for an engineering
-performance-evidence tool. From the manager's request (topic, period, purpose),
-produce a SHORT work-evidence questionnaire.
+performance-evidence tool. You receive a JSON request with the manager's intent:
+`topic`, `period`, `purpose`, `notes` (free-form, may contain a detailed spec),
+optional role/company context, and `require_evidence` (a boolean).
 
-Rules:
-- 5 to 7 questions only.
+Your job is to turn the manager's request into a questionnaire that FAITHFULLY
+reflects what they asked for. The structure is dynamic — let the manager's input
+drive it. Do NOT impose a fixed length or format.
+
+DYNAMIC STRUCTURE — when the manager describes explicit structure, reproduce it
+exactly; do not summarize, merge, or drop items:
+- A list of items (e.g. skills, competencies, projects) -> emit ONE question per
+  item. 34 skills means 34 questions, not a few summarizing ones.
+- A rating scale or levels (e.g. "L1 Awareness ... L5 Expert") -> use
+  question_type "single_choice" and put only the SHORT level LABELS in `options`,
+  in order (e.g. "L1 - Awareness", "L2 - Working Knowledge", ...). If the manager
+  says the default is empty / NA / "not familiar", make the FIRST option that
+  (e.g. "— (not familiar / NA)"). Do NOT repeat the long level descriptions in
+  every question — instead, list the scale ONCE in `scale_legend` as
+  {label, description} entries (label must match the option label). Reuse the
+  same short labels across every question that uses that scale.
+- Named groups/sections -> set `section` to the group name on every question that
+  belongs to it.
+- Opt-in / conditional reveal ("answer yes to show this section's questions")
+  -> add exactly ONE gate question at the start of that section with
+  `opt_in: true`, question_type "single_choice", options ["Yes", "No"], and the
+  same `section`; the other questions in that section depend on it.
+
+FALLBACK — when the manager gives NO explicit structure, produce a short
+work-evidence survey of 5-7 `long_text` questions that collect concrete examples,
+measurable impact, and ownership/collaboration signals.
+
+EVIDENCE:
+- Read `require_evidence` from the request JSON.
+- Only when it is true, set `evidence_required: true` on the OPEN/narrative
+  questions (long_text/short_text) where a supporting link or artifact is
+  meaningful. Evidence is an ATTRIBUTE of a question.
+- NEVER create a separate "paste a link" / evidence_link question, and never put
+  evidence demands on level/choice questions.
+- When `require_evidence` is false, set `evidence_required: false` everywhere.
+
+QUESTION TYPES — pick the one that matches the answer shape:
+- long_text / short_text: free-text narrative.
+- single_choice / multi_choice / rating: pick-from-options (put choices in
+  `options`).
+- number: a numeric value (counts, metrics). date: a calendar date.
+  email: an email address. (These take NO options and NEVER take evidence.)
+- evidence_link / attachment: only if the manager explicitly wants a raw link or
+  file field — prefer evidence_required on a text question instead.
+
+REFUSAL (safety) — check the request FIRST:
+- If the request is DOMINATED by protected/sensitive topics (its main purpose is
+  to ask about health, family/marriage, religion, politics, nationality, private
+  life, salary, or immigration), DO NOT generate substitute questions. Instead
+  set `refused: true`, leave `questions` EMPTY, and write `refusal_reason`
+  naming the prohibited topics that were requested, stating they can't be used to
+  assess performance, and suggesting a lawful work-related reframing.
+- If the request is mostly legitimate but mentions a sensitive topic in passing,
+  generate normally and simply exclude the sensitive part (do NOT refuse).
+
+ALWAYS (when not refusing):
 - Strictly work-related; never ask about health, family, politics, religion,
   nationality, private life, salary, or immigration.
-- Collect concrete examples, measurable impact, and links/artifacts as evidence.
-- Prefer long_text and evidence_link question types for the core questions.
-- Give each question a one-sentence explanation of why it is asked.
+- For a per-item matrix question, the `text` is just the item (e.g. the skill
+  name); the levels live in `options`. Keep it concise.
+- Give each question a one-sentence `explanation`.
+- Number `position` from 1 upward in display order (gates before their section's
+  items).
 - Default privacy_mode to "named_review_evidence".
 Return only the structured questionnaire."""
 
@@ -53,8 +110,14 @@ nationality, private life, salary, or immigration, or if it is manipulative,
 accusatory, or leading; for each risky question give a safer alternative.
 Set decision to "needs_revision" if any question is risky, else "approved".
 
-Return the questionnaire UNCHANGED in the `questionnaire` field, and your review
-in the `safety` field."""
+If the questionnaire is REFUSED (`refused: true` / empty `questions`), the
+manager's request asked for prohibited topics — set decision to
+"needs_revision" and put the `refusal_reason` in `notes`. Do NOT report
+"approved": a refusal must be surfaced, never laundered into an all-clear.
+
+CRITICAL: copy the questionnaire into the `questionnaire` field BYTE-FOR-BYTE
+unchanged — same questions, count, order, options, sections, and flags. Do not
+rewrite, shorten, merge, or re-order anything. Put ONLY your review in `safety`."""
 
 
 def _model() -> Gemini:
@@ -86,13 +149,22 @@ questionnaire_workflow = Workflow(
     edges=[("START", questionnaire_agent, safety_agent)],
 )
 
-# root_agent for the playground/agents-cli is the validated questionnaire
-# workflow. The evidence workflow (app/evidence.py) is WIP: it runs without
-# error but its terminal function-node output is not surfaced by `agents-cli
-# run` (which renders only the final agent response). It will be validated via
-# the REST endpoint / playground, where the function-node Event(output=...) is
-# read programmatically.
-root_agent = questionnaire_workflow
+# root_agent for the playground / agents-cli (incl. `agents-cli eval generate`)
+# is selectable via env so each workflow can be evaluated against its own golden
+# dataset without code edits:
+#   REVIEWOPS_ROOT_AGENT=questionnaire | evidence | review   (default: questionnaire)
+# The local REST server (app/local_server.py) is unaffected — it always serves
+# all three workflows at their own endpoints.
+from .evidence import evidence_workflow
+from .review import review_workflow
+
+_WORKFLOWS = {
+    "questionnaire": questionnaire_workflow,
+    "evidence": evidence_workflow,
+    "review": review_workflow,
+}
+_ROOT = os.environ.get("REVIEWOPS_ROOT_AGENT", "questionnaire").strip().lower()
+root_agent = _WORKFLOWS.get(_ROOT, questionnaire_workflow)
 
 app = App(
     root_agent=root_agent,

@@ -7,19 +7,24 @@ import {
 } from "../services/hrisService";
 import {
   createQuestionnaire,
+  replaceQuestions,
   getQuestionnaire,
   getQuestions,
   submitResponseByToken,
   getAssignmentByToken,
   type SubmittedAnswer,
 } from "../services/surveyService";
+import { assertOwnsQuestionnaire } from "../auth/rbac";
+import { PermissionError } from "../auth/permissions";
 import {
   upsertEvidenceFromResponse,
   createEvidenceItem,
+  updateOwnEvidence,
 } from "../services/evidenceService";
 import { validateAndRoute } from "./evidenceValidation";
 import { generateReviewContext, saveReviewDraft } from "../services/reviewService";
 import { runPrivacyFilterAgent } from "./privacyFilterAgent";
+import { normalizeGeneratedQuestions } from "./normalizeQuestions";
 import {
   generateQuestionnaire,
   generateReview,
@@ -42,56 +47,150 @@ type SafetyResult = {
   notes: string;
 };
 
+/** A human-readable concern from a validation result (shown to the manager). */
+function concernFrom(v: {
+  isWeak: boolean;
+  missingFields: string[];
+  followUpQuestion: string | null;
+}): string | null {
+  if (!v.isWeak) return null;
+  const parts: string[] = [];
+  if (v.missingFields?.length) parts.push(`Missing: ${v.missingFields.join(", ")}`);
+  if (v.followUpQuestion) parts.push(v.followUpQuestion);
+  return parts.join(" — ") || "Low-confidence / weak evidence.";
+}
+
 // --- 1. Questionnaire generation + safety -----------------------------------
 
-export async function orchestrateQuestionnaireGeneration(
-  managerId: string,
-  input: {
-    topic: string;
-    purpose?: string;
-    period: string;
-    roleTitle?: string;
-    notes?: string;
-    evidenceValidation?: boolean;
-  },
-) {
-  const companyValues = getCompanyValueNames();
-  const roleExpectations = input.roleTitle ? getRoleExpectations(input.roleTitle) : [];
+/** The stored generation request, replayed (with extra feedback) on regenerate. */
+export type QuestionnaireGenInput = {
+  topic: string;
+  purpose?: string;
+  period: string;
+  deadline?: string;
+  roleTitle?: string;
+  notes?: string;
+  evidenceValidation?: boolean;
+};
 
-  // The Python ADK 2.0 service runs questionnaire -> safety.
+/** Run the agent + normalize; returns the pieces both create and regenerate persist. */
+async function runQuestionnaireAgent(gen: QuestionnaireGenInput) {
+  const companyValues = getCompanyValueNames();
+  const roleExpectations = gen.roleTitle ? getRoleExpectations(gen.roleTitle) : [];
+
+  // The Python ADK 2.0 service runs questionnaire -> safety. The manager's
+  // "validate evidence" toggle doubles as the per-question evidence gate.
   const r = await generateQuestionnaire({
-    topic: input.topic,
-    period: input.period,
-    purpose: input.purpose,
-    roleTitle: input.roleTitle,
+    topic: gen.topic,
+    period: gen.period,
+    purpose: gen.purpose,
+    roleTitle: gen.roleTitle,
     companyValues,
     roleExpectations,
-    notes: input.notes,
+    notes: gen.notes,
+    requireEvidence: gen.evidenceValidation ?? true,
   });
-  const safetyResult: SafetyResult = {
+  let safety: SafetyResult = {
     decision: r.safety.decision,
     riskyQuestions: r.safety.riskyQuestions,
     notes: r.safety.notes,
   };
+  // Hard-refuse: if the request was dominated by prohibited topics, the agent
+  // refuses (no questions). Force needs_revision deterministically and surface
+  // the reason — never let a refused request be reported as approved.
+  if (r.refused || (r.questions.length === 0 && r.refusalReason)) {
+    safety = {
+      decision: "needs_revision",
+      riskyQuestions: safety.riskyQuestions,
+      notes: r.refusalReason || safety.notes || "Request asked for prohibited topics.",
+    };
+  }
+  // Enforce question invariants deterministically before persisting (the model
+  // output is untrusted: strip evidence from non-text fields, drop empty
+  // choices, clear stray gates). See normalizeQuestions.
+  const questions = normalizeGeneratedQuestions(r.questions);
+  return { r, safety, questions };
+}
 
-  // Persist as a draft (with the safety report) for the manager to review.
-  const questionnaire = createQuestionnaire(
+export async function orchestrateQuestionnaireGeneration(
+  managerId: string,
+  input: QuestionnaireGenInput,
+) {
+  const { r, safety, questions } = await runQuestionnaireAgent(input);
+
+  // Persist as a draft (with the safety report + scale legend) for the manager
+  // to review. The generation input is kept so the draft can be regenerated.
+  const questionnaire = await createQuestionnaire(
     managerId,
     {
       title: r.title,
       purpose: r.purpose,
       period: input.period,
+      deadline: input.deadline ?? null,
       privacyMode: r.privacyMode,
       evidenceValidation: input.evidenceValidation ?? true,
-      safetyJson: JSON.stringify(safetyResult),
+      safetyJson: JSON.stringify(safety),
+      scaleLegendJson: JSON.stringify(r.scaleLegend),
+      genInputJson: JSON.stringify(input),
     },
-    r.questions,
+    questions,
   );
 
   return {
     questionnaire,
-    questions: getQuestions(questionnaire.id),
-    safety: safetyResult,
+    questions: await getQuestions(questionnaire.id),
+    safety,
+    source: "gemini",
+  };
+}
+
+/**
+ * Re-generate a DRAFT questionnaire's questions, applying the manager's
+ * free-text feedback on top of the original request. Replaces the draft's
+ * questions in place (same id), so the preview URL is stable. Ownership +
+ * draft-status are enforced.
+ */
+export async function orchestrateQuestionnaireRegeneration(
+  managerId: string,
+  questionnaireId: string,
+  feedback: string,
+) {
+  const existing = await getQuestionnaire(questionnaireId);
+  assertOwnsQuestionnaire(managerId, existing);
+  if (existing.status !== "draft") {
+    throw new PermissionError("Only draft questionnaires can be refined", 409);
+  }
+
+  const base: QuestionnaireGenInput = existing.genInputJson
+    ? JSON.parse(existing.genInputJson)
+    : {
+        topic: existing.title,
+        purpose: existing.purpose ?? undefined,
+        period: existing.period,
+        evidenceValidation: existing.evidenceValidation,
+      };
+
+  // Accumulate feedback into the notes so successive refinements stack.
+  const notes = [base.notes, `\n\n[Manager revision request]: ${feedback}`]
+    .filter(Boolean)
+    .join("");
+  const gen: QuestionnaireGenInput = { ...base, notes };
+
+  const { r, safety, questions } = await runQuestionnaireAgent(gen);
+
+  const questionnaire = await replaceQuestions(managerId, questionnaireId, questions, {
+    title: r.title,
+    purpose: r.purpose,
+    privacyMode: r.privacyMode,
+    safetyJson: JSON.stringify(safety),
+    scaleLegendJson: JSON.stringify(r.scaleLegend),
+    genInputJson: JSON.stringify(gen),
+  });
+
+  return {
+    questionnaire,
+    questions: await getQuestions(questionnaireId),
+    safety,
     source: "gemini",
   };
 }
@@ -119,25 +218,25 @@ export async function orchestrateResponseSubmission(
   token: string,
   answers: SubmittedAnswer[],
 ): Promise<{ validations: AnswerValidation[] }> {
-  const assignmentPre = getAssignmentByToken(token);
+  const assignmentPre = await getAssignmentByToken(token);
   // submitResponseByToken re-validates the token + expiry and resolves identity.
-  const { assignment, responses } = submitResponseByToken(token, answers);
+  const { assignment, responses } = await submitResponseByToken(token, answers);
 
-  const questionnaire = getQuestionnaire(assignment.questionnaireId);
+  const questionnaire = await getQuestionnaire(assignment.questionnaireId);
   // Evidence validation can be disabled per questionnaire: store plain responses
   // and skip scoring / follow-ups / evidence-card creation.
   if (questionnaire && !questionnaire.evidenceValidation) {
     return { validations: [] };
   }
   const period = questionnaire?.period ?? "";
-  const employee = getEmployeeProfile(assignment.respondentId);
+  const employee = await getEmployeeProfile(assignment.respondentId);
   const roleExpectations = employee ? getRoleExpectations(employee.roleTitle) : [];
   const companyValues = getCompanyValueNames();
-  const goals = getEmployeeGoals(assignment.respondentId, period).map((g) => ({
+  const goals = (await getEmployeeGoals(assignment.respondentId, period)).map((g) => ({
     id: g.id,
     title: g.title,
   }));
-  const questions = getQuestions(assignment.questionnaireId);
+  const questions = await getQuestions(assignment.questionnaireId);
   const typeById = new Map(questions.map((q) => [q.id, q.questionType]));
   const textById = new Map(questions.map((q) => [q.id, q.text]));
 
@@ -160,12 +259,14 @@ export async function orchestrateResponseSubmission(
 
     // Consent carries through: the evidence inherits the response visibility,
     // so only answers the employee allowed for review become review-usable.
-    upsertEvidenceFromResponse(resp.id, {
+    await upsertEvidenceFromResponse(resp.id, {
       employeeId: assignment.respondentId,
       sourceType: "questionnaire_response",
       sourceId: resp.id,
+      sourceText: answerText,
       summary: v.summary,
       impact: v.impact,
+      concern: concernFrom(v),
       period,
       companyValue: v.companyValue,
       goalId: v.goalId,
@@ -200,8 +301,9 @@ export async function orchestrateReviewGeneration(
   employeeId: string,
   period: string,
 ) {
-  // Consent-gated raw context (only allow_for_review evidence).
-  const raw = generateReviewContext(managerId, employeeId, period);
+  // Consent-gated raw context (only allow_for_review evidence) + external
+  // HR signals (peer reviews / feedback / 1:1s) via the connector layer.
+  const raw = await generateReviewContext(managerId, employeeId, period);
 
   // Privacy filter BEFORE the model sees anything (deterministic).
   const privacy = runPrivacyFilterAgent({
@@ -257,7 +359,7 @@ export async function orchestrateReviewGeneration(
     source: "gemini",
   };
 
-  const saved = saveReviewDraft(managerId, {
+  const saved = await saveReviewDraft(managerId, {
     employeeId,
     period,
     markdown,
@@ -283,14 +385,30 @@ type FairnessData = {
  * The validator scores it and the confidence gate routes it: high-confidence →
  * auto-approved; low → pending manager review.
  */
+export type EvidenceSubmissionResult =
+  | { status: "needs_confirmation"; validation: AnswerValidationData & { status: string } }
+  | {
+      status: "stored";
+      evidence: Awaited<ReturnType<typeof createEvidenceItem>>;
+      validation: AnswerValidationData & { status: string };
+    };
+
 export async function orchestrateEvidenceSubmission(
   employeeId: string,
-  input: { text: string; period: string; visibility?: string },
-) {
-  const employee = getEmployeeProfile(employeeId);
+  input: {
+    text: string;
+    period: string;
+    visibility?: string;
+    /** Set true to store weak evidence anyway (employee confirmed). */
+    confirmWeak?: boolean;
+    /** When iterating, the id of the unreviewed item to update in place. */
+    evidenceId?: string;
+  },
+): Promise<EvidenceSubmissionResult> {
+  const employee = await getEmployeeProfile(employeeId);
   const roleExpectations = employee ? getRoleExpectations(employee.roleTitle) : [];
   const companyValues = getCompanyValueNames();
-  const goals = getEmployeeGoals(employeeId, input.period).map((g) => ({
+  const goals = (await getEmployeeGoals(employeeId, input.period)).map((g) => ({
     id: g.id,
     title: g.title,
   }));
@@ -304,11 +422,17 @@ export async function orchestrateEvidenceSubmission(
     goals,
   });
 
-  const evidence = createEvidenceItem({
-    employeeId,
-    sourceType: "manual_upload",
+  // Confirm-before-store: don't persist weak evidence until the employee either
+  // improves it or explicitly chooses to submit it for manager review.
+  if (v.isWeak && !input.confirmWeak) {
+    return { status: "needs_confirmation", validation: v };
+  }
+
+  const fields = {
+    sourceText: input.text,
     summary: v.summary,
     impact: v.impact,
+    concern: concernFrom(v),
     period: input.period,
     companyValue: v.companyValue,
     goalId: v.goalId,
@@ -316,7 +440,17 @@ export async function orchestrateEvidenceSubmission(
     confidence: v.confidence,
     visibility: input.visibility ?? "allow_for_review",
     status: v.status,
-  });
+  };
 
-  return { evidence, validation: v };
+  // Dedup: while iterating, update the SAME unreviewed item instead of creating
+  // a duplicate. Once a manager has approved/rejected, the item is locked and a
+  // fresh submission becomes a new item.
+  let evidence = input.evidenceId
+    ? await updateOwnEvidence(employeeId, input.evidenceId, fields)
+    : null;
+  if (!evidence) {
+    evidence = await createEvidenceItem({ employeeId, sourceType: "manual_upload", ...fields });
+  }
+
+  return { status: "stored", evidence, validation: v };
 }

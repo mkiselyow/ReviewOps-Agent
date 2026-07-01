@@ -12,7 +12,7 @@ export async function POST(
     actorId = manager.id;
     const { draftId } = await ctx.params;
 
-    const result = exportReviewMarkdown(manager.id, draftId);
+    const result = await exportReviewMarkdown(manager.id, draftId);
     logAudit({
       actorId: manager.id,
       action: "review_exported",

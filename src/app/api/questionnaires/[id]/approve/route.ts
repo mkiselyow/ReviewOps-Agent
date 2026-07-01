@@ -23,7 +23,7 @@ export async function POST(
     const body = bodySchema.parse(raw && typeof raw === "object" ? raw : {});
 
     // Approve (ownership checked inside the service).
-    approveQuestionnaire(manager.id, id);
+    await approveQuestionnaire(manager.id, id);
     logAudit({
       actorId: manager.id,
       action: "questionnaire_approved",
@@ -35,9 +35,9 @@ export async function POST(
     const respondentIds =
       body.respondentIds && body.respondentIds.length > 0
         ? body.respondentIds
-        : getDirectReports(manager.id).map((u) => u.id);
+        : (await getDirectReports(manager.id)).map((u) => u.id);
 
-    const links = createSurveyAssignments(manager.id, id, respondentIds);
+    const links = await createSurveyAssignments(manager.id, id, respondentIds);
     logAudit({
       actorId: manager.id,
       action: "assignments_created",

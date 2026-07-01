@@ -108,17 +108,22 @@ npm run dev                     # http://localhost:3000
 
 1. Log in as **Maria** (Engineering Manager). The dashboard shows only her
    direct reports — Anna, Mark, Julia. **Olek is not visible** (different team).
-2. Create a questionnaire (e.g. "Q2 collaboration and ownership"). The
-   Questionnaire Agent proposes 5–7 questions; the Safety Agent reviews them.
-3. Approve → personal token links are generated into the **mock outbox**.
-4. Open Anna's link and submit a weak answer ("I helped with frontend.") — the
-   Evidence Validator flags it and asks for a concrete example, impact, and a
-   link. Improve the answer and resubmit; the score rises.
-5. Back as Maria, open **Results** to see status, evidence quality, weak-evidence
-   warnings, and mapped values.
-6. **Generate review draft** for Anna. Context is consent-gated and
-   privacy-filtered before the model. The Fairness & Grounding Agent flags any
-   unsupported claims.
+2. Create a questionnaire. The generator is **manager-driven**: describe a topic
+   for a short evidence survey, or paste a structure (a skill list + an L1–L5
+   scale + opt-in sections) and it produces a per-skill matrix with dropdowns,
+   sections, and a single rating-scale legend. The Safety Agent reviews it.
+3. Not quite right? Use **Refine & regenerate** with free-text feedback to rebuild
+   the draft in place. Approve → personal token links land in the **mock outbox**.
+4. Open Anna's link and answer. A weak free-text answer ("I helped with frontend.")
+   is flagged with a follow-up; improve and resubmit and the score rises.
+5. Log in as **Anna** → **Add evidence** directly. A weak entry isn't saved until
+   she **confirms** ("submit anyway for manager review"); strong evidence
+   auto-approves. Low-confidence items go to Maria's **evidence review queue**
+   (with the raw text quoted + the agent's concern).
+6. Back as Maria, open **Results** / a report's **evidence on file**, then
+   **Generate review draft**. Context is consent-gated + privacy-filtered, and
+   grounded in self-evidence **plus connector signals** (peer reviews, feedback,
+   1:1 notes). The Fairness check flags unsupported claims.
 7. Approve and **export** the Markdown to `data/exports/`.
 
 ## Security model
@@ -147,32 +152,49 @@ npm run typecheck # tsc --noEmit
 npm run build     # Next production build
 ```
 
-Tests cover the security stories (manager scope, token hashing, expiry,
-cross-assignment isolation), questionnaire schema validity, sensitive-question
-rejection, the weak-answer follow-up loop, the consent gate, and review
-grounding (including UUID citations).
+**54 Vitest tests** cover the security stories (manager scope, token hashing,
+expiry, cross-assignment isolation), questionnaire schema validity,
+sensitive-question rejection, the weak-answer follow-up loop, the consent gate,
+review grounding (incl. connector signals), the dynamic-questionnaire
+**normalizer invariants**, the survey-form logic + **RTL component tests**
+(jsdom), the evidence **confirm-before-store / dedup / lock** flow, the deadline
+**reminders/nudges**, and the **connector** contracts. Agent *behavior* is evaluated separately with
+`agents-cli eval` (golden datasets + LLM-as-judge; see
+[docs/EVALUATION_PLAN.md](docs/EVALUATION_PLAN.md)) plus a no-GCP
+`agent-service/tests/eval/structural_smoke.py`.
 
 ## Limitations
 
 - Mock login (no real SSO); cookie-based session.
-- Mock HRIS, mock outbox (no real Slack/email/Lattice/BambooHR).
+- Mock HRIS + mock outbox, and a **mock** BambooHR/Lattice connector behind typed
+  contracts (`src/server/connectors/`) — real adapters/MCP can swap in later.
 - The app requires the running agent service (Gemini); unit tests mock the
   agent client.
 - Single-manager direct-report scope (no skip-level / HR-admin flows).
 - PII redaction is pattern-based and demonstrative.
 
+## Deployment
+
+The **Python agent service is deployed to Cloud Run** (stateless; Vertex mode, no
+API key in the image). The **Next.js frontend** deploys to Vercel backed by
+**Turso/libSQL** (the DB layer is dual-driver: better-sqlite3 locally + Turso in
+prod). Full reproduction: **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+
 ## Roadmap
 
-Slack delivery and reminders; real Lattice/BambooHR adapters; Notion/knowledge
-base for values, ladder, and role expectations; richer evidence sources. See
+Slack delivery; Cloud Scheduler for event-driven reminders; real Lattice/BambooHR
+adapters; Notion/knowledge base for values, ladder, and role expectations. See
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Kaggle capstone concepts demonstrated
 
-Multi-agent orchestration · tool/service use · long-running business workflow ·
-state & memory (SQLite) · access control & RBAC · privacy/data minimization ·
-human-in-the-loop approval · grounding & fairness checking · graceful model
-fallback.
+Multi-agent orchestration (ADK 2.0 graph `Workflow`s) · dynamic manager-driven
+generation · tool/service use + `SkillToolset` · **mock MCP/connector boundary**
+(BambooHR/Lattice contracts) · long-running business workflow · state & memory
+(SQLite) · access control & RBAC · privacy/data minimization · confidence-gated
+routing · human-in-the-loop approval · grounding & fairness checking ·
+evaluation framework (`agents-cli eval`, LLM-as-judge, trajectory) · observability
+(OpenTelemetry).
 
 ## Documentation
 

@@ -7,6 +7,7 @@ const bodySchema = z.object({
   topic: z.string().min(1, "Topic is required"),
   purpose: z.string().optional(),
   period: z.string().min(1, "Period is required"),
+  deadline: z.string().optional(),
   roleTitle: z.string().optional(),
   notes: z.string().optional(),
   evidenceValidation: z.boolean().optional(),

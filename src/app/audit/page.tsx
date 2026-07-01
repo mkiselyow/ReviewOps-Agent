@@ -11,19 +11,21 @@ export default async function AuditPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const rows = listAudit(200).map((log) => ({
-    id: log.id,
-    createdAt: log.createdAt,
-    actorName:
-      log.actorId === "system"
-        ? "system"
-        : (log.actorId ? getUserById(log.actorId)?.displayName : null) ??
-          log.actorId ??
-          "—",
-    action: log.action,
-    resourceType: log.resourceType,
-    resourceId: log.resourceId,
-  }));
+  const rows = await Promise.all(
+    (await listAudit(200)).map(async (log) => ({
+      id: log.id,
+      createdAt: log.createdAt,
+      actorName:
+        log.actorId === "system"
+          ? "system"
+          : (log.actorId ? (await getUserById(log.actorId))?.displayName : null) ??
+            log.actorId ??
+            "—",
+      action: log.action,
+      resourceType: log.resourceType,
+      resourceId: log.resourceId,
+    })),
+  );
 
   return (
     <Layout user={user}>

@@ -22,12 +22,19 @@ most about:
 ### 0.2 Methods (how to evaluate)
 - **Automated functional testing** — TS Vitest (§2); Pydantic schema validation in the service.
 - **LLM-as-judge** — `agents-cli eval` scores outputs against rubrics (§4); swap reference/actual positions to remove ordering bias; calibrate to ~90% human agreement.
-  - Suite authored: `agent-service/tests/eval/datasets/reviewops-questionnaire.json`
-    (golden cases incl. a sensitive-topic safety probe) + a tailored
-    `questionnaire_quality` rubric in `eval_config.yaml`.
-  - Run: `agents-cli eval run --dataset tests/eval/datasets/reviewops-questionnaire.json`.
-    **Requires GCP** (Vertex AI Eval Service + GCS): a project with Vertex enabled
-    and `gcloud auth application-default login` — part of the deploy/GCP setup.
+  - **Suites authored for all three workflows** under
+    `agent-service/tests/eval/datasets/`: `reviewops-questionnaire.json`
+    (incl. skill-matrix, typed-input, accusatory + sensitive-topic safety probes),
+    `reviewops-evidence.json` (weak/strong/borderline + PII/injection probe),
+    `reviewops-review.json` (grounded / thin / empty / comp-language probe), with
+    rubrics `questionnaire_quality`, `evidence_quality`, `review_quality` in
+    `eval_config.yaml`.
+  - Run: `agents-cli eval generate` → `agents-cli eval grade --metrics <rubric>`
+    per dataset (point `root_agent` at the workflow under test — see the datasets
+    `README.md`). **Requires GCP** (Vertex AI Eval Service + GCS): a project with
+    Vertex enabled + `gcloud auth application-default login`.
+  - No-GCP stopgap: `agent-service/tests/eval/structural_smoke.py` runs the live
+    REST service over several prompts and asserts structure deterministically.
 - **Trajectory inspection** — OpenTelemetry spans (`agent.session/think/tool`); ADK eval trajectory modes **EXACT / IN_ORDER / ANY_ORDER**.
 - **Security & safety eval** — adversarial/protected-topic probes (§2.4); secrets-scan + SAST (Semgrep) in CI.
 - **Human review** — calibrate the judges; the manager approval gate is the ground-truth signal.
@@ -37,6 +44,37 @@ Gate agent flows by authority, per the whitepaper:
 - **Read-only** (generate questionnaire/draft for human review): LLM-as-judge, ≥90% trigger/quality.
 - **Draft** (evidence cards, review drafts): golden dataset (20+ cases) + human approval.
 - **Action-allowed** (e.g. **auto-approving high-confidence evidence**): adversarial red-team + **`pass^k`** (success on every one of k runs, not a single lucky pass) + no rollback events.
+
+### 0.4 Running the suites (operational runbook)
+
+`generate` is **local** (runs the agent with the Gemini API key); `grade` uses the
+**Vertex AI Eval Service**. Select the workflow with the `REVIEWOPS_ROOT_AGENT`
+env switch (`questionnaire|evidence|review`). Per workflow:
+
+```bash
+# generate (local) — needs GOOGLE_API_KEY in agent-service/.env on PATH; and uv on PATH
+REVIEWOPS_ROOT_AGENT=evidence agents-cli eval generate \
+  --dataset tests/eval/datasets/reviewops-evidence.json -o artifacts/traces/evidence/
+# grade (Vertex) — region 'global' (the autorater model lives there)
+agents-cli eval grade --traces artifacts/traces/evidence/ \
+  --metrics evidence_quality --config tests/eval/eval_config.yaml \
+  --project <PROJECT> --region global --output artifacts/grade/evidence/
+# then: agents-cli eval compare <baseline.json> <candidate.json>
+```
+
+One-time **GCP prerequisites** (learned the hard way — a fresh AI-Studio
+`gen-lang-client-*` project needs all of these before `grade` works):
+1. `gcloud services enable aiplatform.googleapis.com serviceusage.googleapis.com`
+2. `gcloud beta services identity create --service=aiplatform.googleapis.com` —
+   creates the `service-…@gcp-sa-aiplatform` agent the autorater runs as (its
+   absence is the "Gaia id not found" 404); allow a few minutes to propagate.
+3. `gcloud auth application-default login` (ADC for the caller).
+Use `--region global` for `grade` (a regional autorater 403s with "model may not
+exist"). `agents-cli` shells out to `uv`, so `uv` must be on PATH.
+
+**Baseline (2026-07):** questionnaire 4.43 → **5.00** after the hard-refuse polish
+(§2.4), evidence **5.00**, review **5.00** (1–5 LLM-as-judge). Residual: the Vertex
+autorater occasionally emits unparseable JSON (external flake).
 
 ## 1. Evaluation Goals
 
@@ -95,6 +133,11 @@ Required tests:
 3. Accusatory questions are rewritten.
 4. Leading questions are flagged.
 5. Overly long questionnaires are flagged.
+6. **A request dominated by protected topics is hard-refused** —
+   `refused: true`, no questions, `needs_revision` with a reason — not silently
+   substituted and reported "approved." *(agents-cli eval finding, 2026-07:
+   raised the questionnaire safety-probe case from 1/5 → 5/5; suite mean
+   4.43 → 5.00.)*
 
 Example unsafe question:
 
@@ -117,6 +160,11 @@ Required tests:
 3. Specific answer with impact gets high quality score.
 4. Evidence card includes summary, impact, quality score, and mapped company value.
 5. Evidence validator does not invent links or facts.
+6. **Weak standalone evidence is NOT stored until the employee confirms**
+   ("submit anyway for manager review"); raw text + concern are captured.
+7. **Resubmitting an unreviewed item updates it in place** (no duplicate); a
+   manager-reviewed item is **locked** so a resubmit creates a new item.
+   *(implemented: `tests/evidence-validation.test.ts`)*
 
 Weak answer:
 
@@ -153,6 +201,10 @@ Required tests:
 3. Review draft does not include unsupported promotion or compensation language.
 4. Review draft does not include sensitive personal data.
 5. Review draft includes achievements, growth areas, and next-period goals.
+6. **Connector signals ground the draft** — consent-gated self-evidence PLUS
+   transient peer reviews / feedback / 1:1 notes are folded into the context and
+   cited (e.g. `[peer:…]`). Non-consented self-evidence is excluded.
+   *(implemented: `tests/review-generation.test.ts`, `tests/connectors.test.ts`)*
 
 ### 2.7 Fairness and Grounding Tests
 
@@ -240,7 +292,9 @@ The evaluation should show evidence for:
 
 - multi-agent system (ADK 2.0 graph `Workflow`s);
 - tools and service wrappers; `SkillToolset` skills;
-- mock MCP-compatible connector boundary;
+- ✅ mock MCP-compatible **connector boundary** (`src/server/connectors/` —
+  BambooHR/Lattice-shaped contracts + mock provider, signals grounded into reviews);
+- dynamic, manager-driven questionnaire generation + deterministic output normalizer;
 - session/stateful workflow + confidence-gated routing;
 - human-in-the-loop approval ("Vibe Diff" logic review);
 - privacy/security guardrails (7-Pillar mapping; pre-LLM PII redaction);

@@ -19,7 +19,7 @@ export default async function ResultsPage({
 
   let results;
   try {
-    results = getQuestionnaireResults(user.id, id);
+    results = await getQuestionnaireResults(user.id, id);
   } catch (err) {
     if (err instanceof PermissionError || err instanceof NotFoundError) {
       return (

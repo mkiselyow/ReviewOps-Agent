@@ -42,13 +42,29 @@ uv run uvicorn app.local_server:app --host 127.0.0.1 --port 8800
 # (Windows fallback: .venv\Scripts\python -m uvicorn app.local_server:app --port 8800)
 ```
 
-**Smoke-test it** (terminal C):
+**Smoke-test it** (terminal C). Pick the block for your shell.
+
+> **Shell note:** in PowerShell, `curl` is an alias for `Invoke-WebRequest`, which
+> rejects `-s/-X/-H/-d` ("positional parameter not found", "-H not recognized") —
+> use `Invoke-RestMethod`, or call the real binary as `curl.exe`. Line
+> continuation is backtick `` ` `` in PowerShell, `\` in bash.
+
+**PowerShell** (`Invoke-RestMethod`):
+```powershell
+Invoke-RestMethod http://127.0.0.1:8800/health
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8800/questionnaire `
+  -ContentType application/json `
+  -Body '{"topic":"Q2 collaboration and ownership","period":"2026-Q2"}'
+```
+
+**bash / cmd** (real curl — `curl.exe` also works from PowerShell):
 ```bash
-curl http://127.0.0.1:8800/health
-curl -s -X POST http://127.0.0.1:8800/questionnaire \
-  -H 'Content-Type: application/json' \
+curl.exe http://127.0.0.1:8800/health
+curl.exe -s -X POST http://127.0.0.1:8800/questionnaire \
+  -H "Content-Type: application/json" \
   -d '{"topic":"Q2 collaboration and ownership","period":"2026-Q2"}'
 ```
+
 You should get back a questionnaire + safety verdict. The service log prints
 OpenTelemetry trajectory spans (`[otel] invoke_workflow …`).
 

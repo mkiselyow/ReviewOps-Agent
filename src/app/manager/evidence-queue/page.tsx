@@ -10,13 +10,15 @@ export const dynamic = "force-dynamic";
 export default async function EvidenceQueuePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (getDirectReports(user.id).length === 0) redirect("/employee");
+  if ((await getDirectReports(user.id)).length === 0) redirect("/employee");
 
-  const items = getPendingEvidenceForManager(user.id).map((e) => ({
+  const items = (await getPendingEvidenceForManager(user.id)).map((e) => ({
     id: e.id,
     employeeName: e.employeeName,
+    sourceText: e.sourceText,
     summary: e.summary,
     impact: e.impact,
+    concern: e.concern,
     companyValue: e.companyValue,
     qualityScore: e.qualityScore,
     confidence: e.confidence,

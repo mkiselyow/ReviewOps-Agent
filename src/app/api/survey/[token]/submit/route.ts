@@ -29,7 +29,7 @@ export async function POST(
     // never trust an id from the request body.
     const result = await orchestrateResponseSubmission(token, body.answers);
 
-    const assignment = getAssignmentByToken(token);
+    const assignment = await getAssignmentByToken(token);
     logAudit({
       actorId: assignment?.respondentId ?? null,
       action: "response_submitted",

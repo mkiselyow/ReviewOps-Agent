@@ -27,7 +27,7 @@ export default async function ReviewDraftPage({
   if (!user) redirect("/login");
   const { draftId } = await params;
 
-  const draft = getReviewDraft(draftId);
+  const draft = await getReviewDraft(draftId);
   if (!draft || draft.managerId !== user.id) {
     return (
       <Layout user={user}>

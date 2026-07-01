@@ -10,31 +10,34 @@ import { users, goals, type User, type Goal } from "../db/schema";
  * (see docs/ARCHITECTURE.md §7).
  */
 
-export function getUserById(id: string): User | null {
-  return db.select().from(users).where(eq(users.id, id)).get() ?? null;
+export async function getUserById(id: string): Promise<User | null> {
+  return (await db.select().from(users).where(eq(users.id, id)).get()) ?? null;
 }
 
-export function getUserByEmail(email: string): User | null {
-  return db.select().from(users).where(eq(users.email, email)).get() ?? null;
+export async function getUserByEmail(email: string): Promise<User | null> {
+  return (await db.select().from(users).where(eq(users.email, email)).get()) ?? null;
 }
 
-export function listAllUsers(): User[] {
+export async function listAllUsers(): Promise<User[]> {
   return db.select().from(users).all();
 }
 
-export function getDirectReports(managerId: string): User[] {
+export async function getDirectReports(managerId: string): Promise<User[]> {
   return db.select().from(users).where(eq(users.managerId, managerId)).all();
 }
 
-export function isManager(userId: string): boolean {
-  return getDirectReports(userId).length > 0;
+export async function isManager(userId: string): Promise<boolean> {
+  return (await getDirectReports(userId)).length > 0;
 }
 
-export function getEmployeeProfile(employeeId: string): User | null {
+export async function getEmployeeProfile(employeeId: string): Promise<User | null> {
   return getUserById(employeeId);
 }
 
-export function getEmployeeGoals(employeeId: string, period?: string): Goal[] {
+export async function getEmployeeGoals(
+  employeeId: string,
+  period?: string,
+): Promise<Goal[]> {
   const where = period
     ? and(eq(goals.employeeId, employeeId), eq(goals.period, period))
     : eq(goals.employeeId, employeeId);

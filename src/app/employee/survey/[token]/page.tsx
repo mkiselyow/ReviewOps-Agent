@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
 import SurveyResponseForm from "@/components/SurveyResponseForm";
+import ScaleLegend from "@/components/ScaleLegend";
 import {
   getAssignmentByToken,
   getQuestionnaire,
@@ -26,7 +27,7 @@ export default async function SurveyPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const assignment = getAssignmentByToken(token);
+  const assignment = await getAssignmentByToken(token);
 
   if (!assignment || isAssignmentExpired(assignment)) {
     return (
@@ -41,11 +42,11 @@ export default async function SurveyPage({
     );
   }
 
-  markAssignmentOpened(assignment.id);
+  await markAssignmentOpened(assignment.id);
 
-  const questionnaire = getQuestionnaire(assignment.questionnaireId);
-  const questions = getQuestions(assignment.questionnaireId);
-  const existing = getResponsesForAssignment(assignment.id);
+  const questionnaire = await getQuestionnaire(assignment.questionnaireId);
+  const questions = await getQuestions(assignment.questionnaireId);
+  const existing = await getResponsesForAssignment(assignment.id);
   const initialAnswers: Record<string, string> = {};
   for (const r of existing) initialAnswers[r.questionId] = r.answerText ?? "";
 
@@ -59,8 +60,22 @@ export default async function SurveyPage({
           {questionnaire?.title ?? "Survey"}
         </h1>
         {questionnaire?.purpose && <p className="muted">{questionnaire.purpose}</p>}
+        {questionnaire?.deadline && (
+          <p className="small muted">📅 Please respond by <strong>{questionnaire.deadline}</strong>.</p>
+        )}
         <div className="note">{privacyNote}</div>
       </div>
+
+      <ScaleLegend
+        legend={
+          questionnaire?.scaleLegendJson
+            ? (JSON.parse(questionnaire.scaleLegendJson) as {
+                label: string;
+                description: string;
+              }[])
+            : []
+        }
+      />
 
       <SurveyResponseForm
         token={token}
@@ -69,7 +84,12 @@ export default async function SurveyPage({
           position: q.position,
           questionType: q.questionType,
           text: q.text,
+          options: q.optionsJson ? (JSON.parse(q.optionsJson) as string[]) : [],
           required: q.required,
+          evidenceRequired: q.evidenceRequired,
+          section: q.section,
+          optIn: q.optIn,
+          explanation: q.explanation,
         }))}
         initialAnswers={initialAnswers}
       />

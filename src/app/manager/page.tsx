@@ -2,9 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import Layout from "@/components/Layout";
 import DirectReportsList from "@/components/DirectReportsList";
+import RemindersPanel from "@/components/RemindersPanel";
 import { getCurrentUser } from "@/server/auth/mockSession";
 import { getDirectReports } from "@/server/services/hrisService";
 import { listQuestionnairesByManager } from "@/server/services/surveyService";
+import { getManagerReminderViews } from "@/server/services/remindersService";
 
 export const dynamic = "force-dynamic";
 
@@ -19,14 +21,15 @@ export default async function ManagerDashboard() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const reports = getDirectReports(user.id);
+  const reports = await getDirectReports(user.id);
   // A user is a "manager" iff they have direct reports. Non-managers don't see
   // manager tools (the "+ Create questionnaire" button, results, etc.).
   const userIsManager = reports.length > 0;
 
   if (!userIsManager) redirect("/employee");
 
-  const questionnaires = listQuestionnairesByManager(user.id);
+  const questionnaires = await listQuestionnairesByManager(user.id);
+  const reminderViews = await getManagerReminderViews(user.id);
 
   return (
     <Layout user={user}>
@@ -52,6 +55,17 @@ export default async function ManagerDashboard() {
           }))}
         />
       </div>
+
+      {reminderViews.length > 0 && (
+        <div className="card">
+          <h2>Response tracking &amp; reminders</h2>
+          <p className="muted small">
+            Completion per sent questionnaire. Overdue ones are flagged; nudge
+            outstanding respondents (reminders land in the mock outbox).
+          </p>
+          <RemindersPanel views={reminderViews} />
+        </div>
+      )}
 
       <div className="card">
         <h2>Questionnaires</h2>

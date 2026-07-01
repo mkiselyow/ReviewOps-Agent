@@ -36,7 +36,7 @@ export async function getSessionUserId(): Promise<string | null> {
 export async function getCurrentUser(): Promise<User | null> {
   const userId = await getSessionUserId();
   if (!userId) return null;
-  const row = db.select().from(users).where(eq(users.id, userId)).get();
+  const row = await db.select().from(users).where(eq(users.id, userId)).get();
   return row ?? null;
 }
 

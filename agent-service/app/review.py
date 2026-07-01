@@ -42,8 +42,9 @@ from .security import sanitize
 
 _EMAIL_RE = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.I)
 _PHONE_RE = re.compile(r"(?:\+?\d[\d\s().-]{7,}\d)")
-# Evidence ids may be slugs (ev_anna_1) or UUIDs (with hyphens).
-_CITATION_RE = re.compile(r"\[([a-z0-9_-]+)\]", re.I)
+# Evidence ids may be slugs (ev_anna_1), UUIDs (with hyphens), or connector
+# signals with a source prefix (peer:pr_anna_1, fb:..., 1on1:...).
+_CITATION_RE = re.compile(r"\[([a-z0-9_:-]+)\]", re.I)
 _VAGUE_PRAISE_RE = re.compile(
     r"\b(great|excellent|amazing|awesome|fantastic|rockstar|10x|good job|very good)\b", re.I
 )
@@ -114,7 +115,9 @@ Rules:
 - Do NOT include the employee's name (the app adds the heading).
 - Sections: Summary, Achievements, Evidence-Backed Examples, Growth Areas,
   Suggested Next-Period Goals, Evidence References.
-Set evidence_references to the evidence ids you cited."""
+Set evidence_references to the evidence ids you cited.
+Return ONLY the JSON object for the schema (the review text goes in the
+`markdown` field). Do NOT wrap your whole response in a ```markdown code fence."""
 
 review_draft_agent = Agent(
     name="review_draft_agent",

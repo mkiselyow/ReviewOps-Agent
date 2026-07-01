@@ -10,7 +10,7 @@ const bodySchema = z.object({ userId: z.string().min(1) });
 export async function POST(req: Request) {
   try {
     const { userId } = bodySchema.parse(await req.json());
-    const user = getUserById(userId);
+    const user = await getUserById(userId);
     if (!user) throw new NotFoundError("User not found");
 
     await setSessionUserId(user.id);

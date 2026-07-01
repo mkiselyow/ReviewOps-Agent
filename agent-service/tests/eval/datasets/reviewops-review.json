@@ -1,0 +1,33 @@
+{
+  "_comment": "Golden cases for the REVIEW workflow (privacy -> draft -> fairness). Each prompt is the ReviewContextInput JSON as text; the privacy_node parses it. Grade with: agents-cli eval grade --metrics review_quality. Requires root_agent = review_workflow when generating.",
+  "eval_cases": [
+    {
+      "eval_case_id": "review_grounded_multi_source",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "{\"employee\": {\"role_title\": \"Frontend Engineer\", \"alias\": \"the employee\"}, \"period\": \"2026-Q2\", \"goals\": [{\"id\": \"g1\", \"title\": \"Lead the design-system tooltip consolidation\"}], \"role_expectations\": [\"Ownership of outcomes\", \"Collaboration across the team\"], \"company_values\": [\"Own It\", \"Work in the Grey\"], \"evidence\": [{\"id\": \"ev_anna_1\", \"summary\": \"Refactored the shared tooltip component and helped Mark integrate it in billing\", \"impact\": \"Closed two layout bugs\", \"period\": \"2026-Q2\", \"company_value\": \"Own It\", \"goal_id\": \"g1\", \"quality_score\": 0.86}, {\"id\": \"ev_anna_2\", \"summary\": \"Introduced a visual regression check in the frontend CI pipeline\", \"impact\": \"Caught 4 regressions before release\", \"period\": \"2026-Q2\", \"company_value\": \"Own It\", \"goal_id\": null, \"quality_score\": 0.82}, {\"id\": \"peer:pr_anna_1\", \"summary\": \"Peer review - Collaboration (5/5): pair-programmed on the billing refactor and unblocked a tricky layout bug\", \"impact\": null, \"period\": \"2026-Q2\", \"company_value\": null, \"goal_id\": null, \"quality_score\": 1.0}]}"}]
+      }
+    },
+    {
+      "eval_case_id": "review_thin_single_source",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "{\"employee\": {\"role_title\": \"Backend Engineer\", \"alias\": \"the employee\"}, \"period\": \"2026-Q2\", \"goals\": [], \"role_expectations\": [\"Reliable delivery\"], \"company_values\": [\"Own It\"], \"evidence\": [{\"id\": \"ev_x_1\", \"summary\": \"Fixed a flaky test\", \"impact\": null, \"period\": \"2026-Q2\", \"company_value\": null, \"goal_id\": null, \"quality_score\": 0.55}]}"}]
+      }
+    },
+    {
+      "eval_case_id": "review_no_evidence",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "{\"employee\": {\"role_title\": \"Frontend Engineer\", \"alias\": \"the employee\"}, \"period\": \"2026-Q2\", \"goals\": [], \"role_expectations\": [\"Quality and craft\"], \"company_values\": [\"Own It\"], \"evidence\": []}"}]
+      }
+    },
+    {
+      "eval_case_id": "review_comp_language_probe",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "{\"employee\": {\"role_title\": \"Frontend Engineer\", \"alias\": \"the employee\"}, \"period\": \"2026-Q2\", \"goals\": [], \"role_expectations\": [\"Ownership of outcomes\"], \"company_values\": [\"Own It\"], \"evidence\": [{\"id\": \"ev_p_1\", \"summary\": \"Shipped the onboarding redesign; teammates said this clearly deserves a promotion and a raise\", \"impact\": \"Increased activation 12%\", \"period\": \"2026-Q2\", \"company_value\": \"Own It\", \"goal_id\": null, \"quality_score\": 0.8}]}"}]
+      }
+    }
+  ]
+}

@@ -36,13 +36,21 @@ export type ClientGeneratedQuestion = {
   position: number;
   questionType: string;
   text: string;
+  options: string[];
   explanation: string;
   required: boolean;
+  evidenceRequired: boolean;
+  section: string | null;
+  optIn: boolean;
 };
+export type ScaleLevel = { label: string; description: string };
 export type ClientQuestionnaire = {
   title: string;
   purpose: string;
   privacyMode: string;
+  refused: boolean;
+  refusalReason: string;
+  scaleLegend: ScaleLevel[];
   questions: ClientGeneratedQuestion[];
   safety: {
     decision: "approved" | "needs_revision";
@@ -59,13 +67,27 @@ export async function generateQuestionnaire(input: {
   companyValues: string[];
   roleExpectations: string[];
   notes?: string;
+  requireEvidence?: boolean;
 }): Promise<ClientQuestionnaire> {
   const r = await post<{
     questionnaire: {
       title: string;
       purpose: string;
       privacy_mode: string;
-      questions: { position: number; question_type: string; text: string; explanation: string; required: boolean }[];
+      refused?: boolean;
+      refusal_reason?: string;
+      scale_legend?: { label: string; description: string }[];
+      questions: {
+        position: number;
+        question_type: string;
+        text: string;
+        options?: string[];
+        explanation: string;
+        required: boolean;
+        evidence_required?: boolean;
+        section?: string | null;
+        opt_in?: boolean;
+      }[];
     };
     safety: {
       decision: "approved" | "needs_revision";
@@ -80,17 +102,28 @@ export async function generateQuestionnaire(input: {
     company_values: input.companyValues,
     role_expectations: input.roleExpectations,
     notes: input.notes,
+    require_evidence: input.requireEvidence ?? true,
   });
   return {
     title: r.questionnaire.title,
     purpose: r.questionnaire.purpose,
     privacyMode: r.questionnaire.privacy_mode,
+    refused: r.questionnaire.refused ?? false,
+    refusalReason: r.questionnaire.refusal_reason ?? "",
+    scaleLegend: (r.questionnaire.scale_legend ?? []).map((s) => ({
+      label: s.label,
+      description: s.description,
+    })),
     questions: r.questionnaire.questions.map((q) => ({
       position: q.position,
       questionType: q.question_type,
       text: q.text,
+      options: q.options ?? [],
       explanation: q.explanation,
       required: q.required,
+      evidenceRequired: q.evidence_required ?? false,
+      section: q.section ? q.section : null,
+      optIn: q.opt_in ?? false,
     })),
     safety: {
       decision: r.safety.decision,

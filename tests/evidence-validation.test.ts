@@ -29,15 +29,15 @@ describe("evidence validation", () => {
   beforeEach(reseed);
 
   it("end-to-end: weak answer is flagged then upgraded on resubmission, carrying consent", async () => {
-    const q = createQuestionnaire(
+    const q = await createQuestionnaire(
       USERS.maria,
       { title: "Q2 Evidence", period: "2026-Q2" },
       [{ position: 0, questionType: "long_text", text: "Describe a contribution." }],
     );
-    approveQuestionnaire(USERS.maria, q.id);
-    const [anna] = createSurveyAssignments(USERS.maria, q.id, [USERS.anna]);
+    await approveQuestionnaire(USERS.maria, q.id);
+    const [anna] = await createSurveyAssignments(USERS.maria, q.id, [USERS.anna]);
     const token = tokenFromLink(anna.link);
-    const questionId = getQuestions(q.id)[0].id;
+    const questionId = (await getQuestions(q.id))[0].id;
 
     // Weak submission with review consent.
     const first = await orchestrateResponseSubmission(token, [
@@ -46,7 +46,7 @@ describe("evidence validation", () => {
     expect(first.validations[0].validation.isWeak).toBe(true);
 
     // Evidence carries the allow_for_review consent and is review-usable.
-    const reviewable = getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2");
+    const reviewable = await getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2");
     const fromResponse = reviewable.find((e) => e.sourceType === "questionnaire_response");
     expect(fromResponse).toBeDefined();
 
@@ -56,36 +56,47 @@ describe("evidence validation", () => {
     ]);
     expect(second.validations[0].validation.isWeak).toBe(false);
 
-    const after = getEmployeeEvidence(USERS.maria, USERS.anna, "2026-Q2").filter(
+    const after = (await getEmployeeEvidence(USERS.maria, USERS.anna, "2026-Q2")).filter(
       (e) => e.sourceType === "questionnaire_response",
     );
     expect(after.length).toBe(1);
     expect(after[0].qualityScore ?? 0).toBeGreaterThanOrEqual(0.6);
   });
 
-  it("standalone evidence: weak -> pending_review -> manager approves -> review-usable (#16)", async () => {
+  it("standalone weak evidence is NOT stored until the employee confirms", async () => {
     const r = await orchestrateEvidenceSubmission(USERS.anna, {
       text: WEAK,
       period: "2026-Q2",
     });
+    expect(r.status).toBe("needs_confirmation");
+    // Nothing persisted yet.
+    expect((await getPendingEvidenceForManager(USERS.maria)).length).toBe(0);
+  });
+
+  it("standalone evidence: confirmed weak -> pending_review -> manager approves -> review-usable (#16)", async () => {
+    const r = await orchestrateEvidenceSubmission(USERS.anna, {
+      text: WEAK,
+      period: "2026-Q2",
+      confirmWeak: true,
+    });
+    if (r.status !== "stored") throw new Error("expected stored");
     expect(r.evidence.status).toBe("pending_review");
+    // raw text is captured for manager transparency
+    expect(r.evidence.sourceText).toBe(WEAK);
+    expect(r.evidence.concern).toBeTruthy();
 
-    // shows in Maria's review queue
     expect(
-      getPendingEvidenceForManager(USERS.maria).some((e) => e.id === r.evidence.id),
+      (await getPendingEvidenceForManager(USERS.maria)).some((e) => e.id === r.evidence.id),
     ).toBe(true);
-
-    // not yet usable for a review draft
     expect(
-      getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2").some(
+      (await getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2")).some(
         (e) => e.id === r.evidence.id,
       ),
     ).toBe(false);
 
-    // manager approves -> usable
-    setEvidenceStatus(USERS.maria, r.evidence.id, "approved");
+    await setEvidenceStatus(USERS.maria, r.evidence.id, "approved");
     expect(
-      getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2").some(
+      (await getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2")).some(
         (e) => e.id === r.evidence.id,
       ),
     ).toBe(true);
@@ -96,11 +107,52 @@ describe("evidence validation", () => {
       text: STRONG,
       period: "2026-Q2",
     });
+    if (r.status !== "stored") throw new Error("expected stored");
     expect(r.evidence.status).toBe("auto_approved");
     expect(
-      getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2").some(
+      (await getEvidenceForReview(USERS.maria, USERS.anna, "2026-Q2")).some(
         (e) => e.id === r.evidence.id,
       ),
     ).toBe(true);
+  });
+
+  it("resubmitting with an evidenceId updates the SAME item (no duplicate)", async () => {
+    const first = await orchestrateEvidenceSubmission(USERS.anna, {
+      text: WEAK,
+      period: "2026-Q2",
+      confirmWeak: true,
+    });
+    if (first.status !== "stored") throw new Error("expected stored");
+    const before = (await getPendingEvidenceForManager(USERS.maria)).length;
+
+    // Improve and resubmit against the same id -> upgrades in place.
+    const second = await orchestrateEvidenceSubmission(USERS.anna, {
+      text: STRONG,
+      period: "2026-Q2",
+      evidenceId: first.evidence.id,
+    });
+    if (second.status !== "stored") throw new Error("expected stored");
+    expect(second.evidence.id).toBe(first.evidence.id);
+    expect(second.evidence.status).toBe("auto_approved");
+    // No new pending row was created; the old one was upgraded out of pending.
+    expect((await getPendingEvidenceForManager(USERS.maria)).length).toBe(before - 1);
+  });
+
+  it("a manager-reviewed item is locked: resubmit creates a new item", async () => {
+    const first = await orchestrateEvidenceSubmission(USERS.anna, {
+      text: WEAK,
+      period: "2026-Q2",
+      confirmWeak: true,
+    });
+    if (first.status !== "stored") throw new Error("expected stored");
+    await setEvidenceStatus(USERS.maria, first.evidence.id, "rejected");
+
+    const second = await orchestrateEvidenceSubmission(USERS.anna, {
+      text: STRONG,
+      period: "2026-Q2",
+      evidenceId: first.evidence.id, // locked -> ignored
+    });
+    if (second.status !== "stored") throw new Error("expected stored");
+    expect(second.evidence.id).not.toBe(first.evidence.id);
   });
 });

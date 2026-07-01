@@ -44,3 +44,8 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Agent service — generated eval traces/grade output + Python caches
+agent-service/artifacts/
+__pycache__/
+*.pyc

@@ -29,6 +29,34 @@
       "when": 1782680258081,
       "tag": "0003_aromatic_songbird",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1782706436592,
+      "tag": "0004_fine_blonde_phantom",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1782838747756,
+      "tag": "0005_sticky_chamber",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1782845466559,
+      "tag": "0006_silly_whiplash",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1782872477521,
+      "tag": "0007_friendly_firelord",
+      "breakpoints": true
     }
   ]
 }

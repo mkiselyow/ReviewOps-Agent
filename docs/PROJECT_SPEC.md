@@ -2,9 +2,15 @@
 
 > **Architecture note (current):** ReviewOps is now a **hybrid** — a TypeScript
 > Next.js frontend + a **Python ADK 2.0 agent service** (graph `Workflow`s,
-> Gemini). See `ARCHITECTURE.md`. Recent additions beyond the original MVP: a
-> **standalone employee evidence flow**, **confidence-gated routing**
-> (auto-approve vs manager review), and an **annual review-cycle reminder** event.
+> Gemini). See `ARCHITECTURE.md`. Delivered beyond the original MVP:
+> **dynamic, manager-driven questionnaires** (per-item matrix, sections, opt-in
+> gates, shared scale legend, number/date/email types, a deterministic output
+> normalizer, and refine-and-regenerate); a **standalone employee evidence flow**
+> with **confidence-gated routing** + **confirm-before-store / dedup / lock** and
+> raw-text + concern capture; **manager evidence views** (raw quote + agent
+> concern); and a **mock BambooHR/Lattice connector** behind typed contracts whose
+> peer-review / feedback / 1:1 signals ground the review draft (transient, not
+> stored). Still postponed: the **annual review-cycle reminder** event and deploy.
 > The agent service requires a Gemini API key (no offline mock).
 
 ## 1. Project Name
@@ -210,7 +216,9 @@ Sample goals:
 
    > Create a Q2 collaboration and ownership evidence survey for my direct reports. I want concrete examples, impact, and links to supporting artifacts.
 
-5. Questionnaire Agent generates 5–7 questions.
+5. Questionnaire Agent generates the survey — a short evidence set, or a full
+   per-item matrix with sections + a rating-scale legend if Maria pasted that
+   structure (she can also **refine & regenerate** with feedback).
 6. Questionnaire Safety Agent checks the questions.
 7. Maria approves the questionnaire.
 8. System creates personal links for Anna, Mark, and Julia.

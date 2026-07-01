@@ -58,31 +58,36 @@ type SeedEvidence = {
 };
 
 /** Delete all rows in dependency-safe order. */
-export function clearDatabase(): void {
-  db.delete(attachments).run();
-  db.delete(reviewDrafts).run();
-  db.delete(outbox).run();
-  db.delete(responses).run();
-  db.delete(surveyAssignments).run();
-  db.delete(questions).run();
-  db.delete(questionnaires).run();
-  db.delete(evidenceItems).run();
-  db.delete(goals).run();
-  db.delete(auditLogs).run();
-  db.delete(users).run();
+export async function clearDatabase(): Promise<void> {
+  await db.delete(attachments).run();
+  await db.delete(reviewDrafts).run();
+  await db.delete(outbox).run();
+  await db.delete(responses).run();
+  await db.delete(surveyAssignments).run();
+  await db.delete(questions).run();
+  await db.delete(questionnaires).run();
+  await db.delete(evidenceItems).run();
+  await db.delete(goals).run();
+  await db.delete(auditLogs).run();
+  await db.delete(users).run();
 }
 
 /** Reset and load the synthetic demo data. Returns the counts inserted. */
-export function seedDatabase(): { users: number; goals: number; evidence: number } {
+export async function seedDatabase(): Promise<{
+  users: number;
+  goals: number;
+  evidence: number;
+}> {
   const seedUsers = readJson<SeedUser[]>("data/seed/employees.json");
   const seedGoals = readJson<SeedGoal[]>("data/seed/goals.json");
   const seedEvidence = readJson<SeedEvidence[]>("data/seed/sample-evidence.json");
 
-  clearDatabase();
-  db.insert(users).values(seedUsers).run();
-  db.insert(goals).values(seedGoals).run();
-  db.insert(evidenceItems).values(seedEvidence).run();
-  db.insert(auditLogs)
+  await clearDatabase();
+  await db.insert(users).values(seedUsers).run();
+  await db.insert(goals).values(seedGoals).run();
+  await db.insert(evidenceItems).values(seedEvidence).run();
+  await db
+    .insert(auditLogs)
     .values({
       actorId: "system",
       action: "seed",
@@ -105,7 +110,7 @@ const isDirectRun =
   fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 if (isDirectRun) {
   console.log("Seeding ReviewOps Agent database...");
-  const counts = seedDatabase();
+  const counts = await seedDatabase();
   console.log(`  users:    ${counts.users}`);
   console.log(`  goals:    ${counts.goals}`);
   console.log(`  evidence: ${counts.evidence}`);

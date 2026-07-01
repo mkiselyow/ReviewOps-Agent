@@ -29,6 +29,7 @@ export async function generateQuestionnaire(input: {
     title: `${input.period} ${input.topic} Survey`,
     purpose: `Collect ${input.topic} evidence for ${input.period}.`,
     privacyMode: "named_review_evidence",
+    scaleLegend: [] as { label: string; description: string }[],
     questions,
     safety: sensitive
       ? {

@@ -38,16 +38,40 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
 *Agent Skills* whitepapers (see `ARCHITECTURE.md` §4).
 
 ### A. Agent service & deployment
-- Finish porting workflows (questionnaire ✅, evidence 🟡, review ⬜) and wire the
-  Next app over REST (remove in-process TS agents).
-- Standalone **employee evidence flow** + **confidence-gated routing**
-  (auto-approve vs manager review queue) + **RequestInput** HITL.
-- Deploy: Python service → **Agent Runtime** (`agents-cli deploy`); Next.js →
-  Cloud Run/Vercel.
+- ✅ All three workflows ported (questionnaire ✅, evidence ✅, review ✅) and wired
+  over REST; in-process TS agents removed.
+- ✅ Standalone **employee evidence flow** + **confidence-gated routing**
+  (auto-approve vs manager review queue) + **confirm-before-store / dedup / lock**.
+- ✅ **Dynamic questionnaires** (per-item matrix, sections, opt-in gates, scale
+  legend, number/date/email, deterministic normalizer, refine-and-regenerate).
+- ✅ **Mock BambooHR/Lattice connector** behind typed contracts; peer/feedback/1:1
+  signals fold into review grounding (transient, not stored).
+- ⬜ Deploy: Python service → **Agent Runtime** (`agents-cli deploy`); Next.js →
+  Cloud Run/Vercel. ⬜ Optional `RequestInput` HITL for the weak-evidence pause.
 
 ### B. Ambient (event-driven)
-- Pub/Sub + Cloud Scheduler: review-season reminders, incomplete-survey nudges,
-  auto-close questionnaires past deadline.
+- ✅ **In-app deadlines & nudges** — questionnaire `deadline`, overdue detection,
+  per-questionnaire completion on the manager dashboard, and "Send reminders"
+  writing nudge rows to the outbox (`remindersService`).
+- ⬜ Make it truly event-driven: **Cloud Scheduler → `/api/cron/reminders`** (or
+  Pub/Sub) to auto-nudge without a manual click; auto-close questionnaires past
+  deadline; review-season reminders.
+
+### B2. Capstone submission & ops (high priority — deadline 2026-07-06)
+- 🔴 **Submission artifacts (HIGH):** finalize the Kaggle Writeup (≤2,500 words,
+  *Agents for Business*), a cover image, and a **≤5-min YouTube demo video**; a
+  public project link (live demo **or** public GitHub repo with setup). These are
+  *required* for eligibility and worth 30 of 100 points — do not let them slip.
+- **Publish/verify the public GitHub repo.** A local git repo already exists; it
+  wasn't visible from the assistant's shell because the working directory was the
+  wrong folder (`X:\dev\RavenGame`, not `X:\dev\ReviewOpsAgent`). Action: confirm
+  the repo, push, and make it public with the README as the front door.
+- **CI (GitHub Actions).** *Why:* catch regressions automatically on every push so
+  the submission stays green. *What:* `.github/workflows/ci.yml` running
+  `npm run typecheck` + `npm test` + `npm run build` (fast, no GCP). Separately, a
+  **manual/scheduled** job can run `agents-cli eval` — it needs Vertex ADC as GitHub
+  secrets and costs money per run, so it is **not** wired to every PR. (Recorded
+  here so it isn't re-scoped later.)
 
 ### C. Security (7-Pillar) — beyond today's baseline
 Today: access control before model, pre-LLM PII redaction, HITL approval, no
@@ -66,8 +90,14 @@ authorization; EU AI Act governance/attestation (Pillar 7).
   graduation; later, meta-skills (agent-drafted, human-reviewed).
 
 ### F. Evaluation
-- Operationalize `agents-cli eval` golden datasets + LLM-as-judge + trajectory
-  inspection in CI (see `EVALUATION_PLAN.md` §0).
+- ✅ Golden datasets + rubrics authored for all three workflows
+  (`agent-service/tests/eval/`); no-GCP `structural_smoke.py` in place.
+- ✅ **Ran `agents-cli eval generate/grade`** on Vertex — baseline recorded
+  (questionnaire 4.43→**5.00**, evidence/review **5.00**); the run surfaced the
+  safety silent-substitution gap → fixed with **hard-refuse** + rubric
+  calibration; verified via `eval compare` (see `EVALUATION_PLAN.md` §0.4, §2.4).
+- ⬜ Wire the eval run into CI; chase the two residual flakes (Vertex autorater
+  JSON parse; review-draft markdown-fence, ADK-retry-covered).
 
 ## Phase 2 — Slack Delivery
 
@@ -91,7 +121,10 @@ Replace mock outbox with Slack workflow.
 
 ## Phase 3 — Lattice / BambooHR Adapter
 
-Replace mock HRIS with real HRIS connector.
+The **connector boundary already exists** (`src/server/connectors/` — typed
+`DirectoryConnector` + `PerformanceConnector` contracts with a mock provider).
+This phase replaces the mock provider with a real adapter (or MCP server) behind
+the same interface.
 
 ### Features
 

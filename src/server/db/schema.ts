@@ -50,6 +50,9 @@ export const QUESTION_TYPES = [
   "single_choice",
   "multi_choice",
   "rating",
+  "number",
+  "date",
+  "email",
   "evidence_link",
   "attachment",
 ] as const;
@@ -128,6 +131,9 @@ export const questionnaires = sqliteTable("questionnaires", {
   title: text("title").notNull(),
   purpose: text("purpose"),
   period: text("period").notNull(),
+  // Optional response deadline (ISO date). Drives overdue detection + nudges and,
+  // when set, the survey-assignment expiry.
+  deadline: text("deadline"),
   privacyMode: text("privacy_mode").notNull().default("named_review_evidence"),
   // When false, responses are stored as plain answers (no evidence validation,
   // scoring, follow-ups, or evidence cards).
@@ -136,6 +142,12 @@ export const questionnaires = sqliteTable("questionnaires", {
     .default(true),
   // Safety review result captured at generation time (shown on the preview page).
   safetyJson: text("safety_json"),
+  // Shared rating-scale legend (JSON [{label, description}]) shown once instead
+  // of repeating descriptions in every question's options.
+  scaleLegendJson: text("scale_legend_json"),
+  // The original generation request (topic/purpose/notes/evidenceValidation),
+  // kept so a manager can re-generate the draft with extra feedback.
+  genInputJson: text("gen_input_json"),
   status: text("status").notNull().default("draft"),
   createdAt: createdAt(),
   approvedAt: text("approved_at"),
@@ -155,6 +167,11 @@ export const questions = sqliteTable("questions", {
   evidenceRequired: integer("evidence_required", { mode: "boolean" })
     .notNull()
     .default(true),
+  // Optional grouping heading (e.g. a skill-matrix section). Null = ungrouped.
+  section: text("section"),
+  // Marks a section's yes/no opt-in gate; when answered "No" the rest of the
+  // section's questions stay hidden (progressive disclosure).
+  optIn: integer("opt_in", { mode: "boolean" }).notNull().default(false),
   explanation: text("explanation"),
   createdAt: createdAt(),
 });
@@ -186,8 +203,14 @@ export const evidenceItems = sqliteTable("evidence_items", {
   employeeId: text("employee_id").notNull(),
   sourceType: text("source_type").notNull(),
   sourceId: text("source_id"),
+  // The employee's original words (for transparency in the manager review view
+  // and to support the improve-loop). The AI summary lives in `summary`.
+  sourceText: text("source_text"),
   summary: text("summary").notNull(),
   impact: text("impact"),
+  // The validator's concern captured at submission (why it was weak / what is
+  // missing), shown to the manager alongside the raw text.
+  concern: text("concern"),
   period: text("period").notNull(),
   companyValue: text("company_value"),
   goalId: text("goal_id"),

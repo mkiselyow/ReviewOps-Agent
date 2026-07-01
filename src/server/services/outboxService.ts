@@ -9,13 +9,13 @@ import { getUserById } from "./hrisService";
  * them later.
  */
 
-export function recordDelivery(entry: {
+export async function recordDelivery(entry: {
   questionnaireId: string;
   respondentId: string;
   assignmentId: string;
   link: string;
   channel?: string;
-}): OutboxMessage {
+}): Promise<OutboxMessage> {
   return db
     .insert(outbox)
     .values({
@@ -35,8 +35,8 @@ export type OutboxView = OutboxMessage & {
   questionnaireTitle: string;
 };
 
-export function getOutboxForManager(managerId: string): OutboxView[] {
-  const myQuestionnaires = db
+export async function getOutboxForManager(managerId: string): Promise<OutboxView[]> {
+  const myQuestionnaires = await db
     .select()
     .from(questionnaires)
     .where(eq(questionnaires.createdByManagerId, managerId))
@@ -44,17 +44,21 @@ export function getOutboxForManager(managerId: string): OutboxView[] {
   const ids = myQuestionnaires.map((q) => q.id);
   if (ids.length === 0) return [];
 
-  return db
+  const rows = await db
     .select()
     .from(outbox)
     .where(inArray(outbox.questionnaireId, ids))
     .orderBy(desc(outbox.createdAt))
-    .all()
-    .map((row) => ({
+    .all();
+
+  return Promise.all(
+    rows.map(async (row) => ({
       ...row,
-      respondentName: getUserById(row.respondentId)?.displayName ?? row.respondentId,
+      respondentName:
+        (await getUserById(row.respondentId))?.displayName ?? row.respondentId,
       questionnaireTitle:
         myQuestionnaires.find((q) => q.id === row.questionnaireId)?.title ??
         row.questionnaireId,
-    }));
+    })),
+  );
 }

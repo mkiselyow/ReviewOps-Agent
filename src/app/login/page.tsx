@@ -10,12 +10,16 @@ export default async function LoginPage() {
   // Already logged in → go to the dashboard instead of showing the login UI.
   if (await getCurrentUser()) redirect("/manager");
 
-  const users = listAllUsers().map((u) => ({
-    id: u.id,
-    displayName: u.displayName,
-    roleTitle: u.roleTitle,
-    managerName: u.managerId ? getUserById(u.managerId)?.displayName ?? null : null,
-  }));
+  const users = await Promise.all(
+    (await listAllUsers()).map(async (u) => ({
+      id: u.id,
+      displayName: u.displayName,
+      roleTitle: u.roleTitle,
+      managerName: u.managerId
+        ? (await getUserById(u.managerId))?.displayName ?? null
+        : null,
+    })),
+  );
 
   return (
     <Layout user={null}>

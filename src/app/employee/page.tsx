@@ -19,9 +19,9 @@ const STATUS_CLASS: Record<string, string> = {
 export default async function EmployeePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (getDirectReports(user.id).length > 0) redirect("/manager");
+  if ((await getDirectReports(user.id)).length > 0) redirect("/manager");
 
-  const evidence = getOwnEvidence(user.id);
+  const evidence = await getOwnEvidence(user.id);
 
   return (
     <Layout user={user}>
