@@ -130,18 +130,20 @@ describe("agent shared secret", () => {
 
   it("agentClient attaches X-Agent-Key when AGENT_SHARED_SECRET is set", async () => {
     process.env.AGENT_SHARED_SECRET = "s3cret";
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
-        questionnaire: {
-          title: "t",
-          purpose: "p",
-          privacy_mode: "named_review_evidence",
-          questions: [],
-        },
-        safety: { decision: "approved", risky_questions: [], notes: "" },
+    const fetchMock = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) => ({
+        ok: true,
+        json: async () => ({
+          questionnaire: {
+            title: "t",
+            purpose: "p",
+            privacy_mode: "named_review_evidence",
+            questions: [],
+          },
+          safety: { decision: "approved", risky_questions: [], notes: "" },
+        }),
       }),
-    }));
+    );
     vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
     const { generateQuestionnaire } = await import("../src/server/agentClient");
@@ -152,10 +154,7 @@ describe("agent shared secret", () => {
       roleExpectations: [],
     });
 
-    const headers = (fetchMock.mock.calls[0][1] as RequestInit).headers as Record<
-      string,
-      string
-    >;
+    const headers = fetchMock.mock.calls[0][1]!.headers as Record<string, string>;
     expect(headers["X-Agent-Key"]).toBe("s3cret");
   });
 });

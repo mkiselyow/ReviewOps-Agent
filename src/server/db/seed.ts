@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { eq } from "drizzle-orm";
@@ -20,6 +20,17 @@ import {
 
 function readJson<T>(relPath: string): T {
   const full = resolve(process.cwd(), relPath);
+  return JSON.parse(readFileSync(full, "utf-8")) as T;
+}
+
+/**
+ * Optional, gitignored seed file (e.g. `*.local.json`). Used to add REAL users
+ * to a deployment without committing their names to the repo — the committed
+ * seed stays fully synthetic. Returns [] when the file is absent.
+ */
+function readOptionalJson<T>(relPath: string): T | [] {
+  const full = resolve(process.cwd(), relPath);
+  if (!existsSync(full)) return [];
   return JSON.parse(readFileSync(full, "utf-8")) as T;
 }
 
@@ -82,7 +93,11 @@ export async function seedDatabase(): Promise<{
   goals: number;
   evidence: number;
 }> {
-  const seedUsers = readJson<SeedUser[]>("data/seed/employees.json");
+  const seedUsers = [
+    ...readJson<SeedUser[]>("data/seed/employees.json"),
+    // Optional real roster, merged if present (gitignored — never committed).
+    ...readOptionalJson<SeedUser[]>("data/seed/employees.local.json"),
+  ];
   const seedGoals = readJson<SeedGoal[]>("data/seed/goals.json");
   const seedEvidence = readJson<SeedEvidence[]>("data/seed/sample-evidence.json");
 
