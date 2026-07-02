@@ -130,7 +130,7 @@ routing) lives in `@node` functions — "write software, not rules."
 flowchart LR
   subgraph QW["Questionnaire workflow"]
     direction LR
-    S1((START)) --> QA[questionnaire_agent] --> SA[safety_agent] --> QO[/QuestionnaireWithSafety/]
+    S1((START)) --> QA[questionnaire_agent] --> CN["capture_node<br/>(→ state)"] --> SA["safety_agent<br/>(verdict only)"] --> AN["assemble_node"] --> QO[/QuestionnaireWithSafety/]
   end
 
   subgraph EW["Evidence workflow"]
@@ -149,12 +149,25 @@ flowchart LR
 
 | Workflow | Nodes | Status |
 | --- | --- | --- |
-| Questionnaire | `questionnaire_agent → safety_agent` | ✅ live via REST; dynamic structure + scale legend |
+| Questionnaire | `questionnaire_agent → capture_node → safety_agent → assemble_node` | ✅ live via REST; dynamic structure + scale legend |
 | Evidence | `security_node → evidence_validator → finalize_node` (confidence routing) | ✅ live via REST; confidence-gated routing |
 | Review | `privacy_node → review_draft_agent → fairness_node` | ✅ live via REST; grounded + fairness report |
 
 All three run live against Gemini (`gemini-2.5-flash`) via the local REST server
 (`app/local_server.py`) and are wired into the TS app over `AGENT_SERVICE_URL`.
+
+**Single-emission safety (scaling).** The safety agent returns only a
+`SafetyReport` (verdict); the (possibly large) questionnaire JSON is emitted
+**once** by `questionnaire_agent`, threaded through `capture_node`'s state, and
+re-attached by the deterministic `assemble_node` into the terminal
+`QuestionnaireWithSafety`. This avoids a second full copy of a big skill-matrix —
+which previously doubled output tokens and could truncate the response.
+`questionnaire_agent` raises `max_output_tokens` (32k) and uses a single attempt
+(truncation is deterministic — retrying only adds latency). If output still
+exceeds the budget, `local_server` returns a clean **422** ("too large — split
+it"), never an opaque 500; the TS `agentClient` adds a 120s timeout and the
+agent-backed Next routes set `maxDuration`. Large matrices (~40 items) generate in
+~20s.
 
 ### 2.1 Dynamic questionnaires (manager-driven)
 

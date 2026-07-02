@@ -49,8 +49,16 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
 - ✅ **Deployed live** — Python agent service → **Cloud Run** (Vertex mode, no key in
   image); Next.js frontend → **Vercel** backed by **Turso/libSQL** (dual-driver).
   Live demo: **https://reviewops-agent.vercel.app**. See [DEPLOY.md](DEPLOY.md).
+- ✅ **Large-generation reliability (hardened sync)** — safety agent emits a
+  verdict only (questionnaire threaded via state + reassembled), raised
+  `max_output_tokens`, graceful **422** on oversize instead of 500, client-side
+  timeout, and `maxDuration` on agent routes. A ~40-item matrix generates in ~20s.
 - ⬜ Optional: Python service → **Agent Runtime** (`agents-cli deploy`) to showcase
   ADK-native deploy; `RequestInput` HITL for the weak-evidence pause.
+- ⬜ **Async generation** for pathologically large questionnaires: POST returns a
+  "generating" id and the client polls a status endpoint until ready/failed
+  (optionally Cloud Run writes results back to Turso to fully decouple from the
+  Vercel function timeout). Deferred — sync is sufficient at current sizes.
 
 ### B. Ambient (event-driven)
 - ✅ **In-app deadlines & nudges** — questionnaire `deadline`, overdue detection,

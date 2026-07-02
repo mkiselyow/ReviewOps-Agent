@@ -35,7 +35,12 @@ gcloud services enable run.googleapis.com cloudbuild.googleapis.com aiplatform.g
 gcloud run deploy reviewops-agent \
   --source agent-service --region us-central1 --allow-unauthenticated \
   --set-env-vars "GEMINI_MODEL=gemini-2.5-flash,DISABLE_LOCAL_OTEL=1,GOOGLE_GENAI_USE_VERTEXAI=True,GOOGLE_CLOUD_PROJECT=<PROJECT>,GOOGLE_CLOUD_LOCATION=us-central1,AGENT_SHARED_SECRET=<SHARED_SECRET>" \
-  --min-instances 0 --max-instances 4 --memory 1Gi
+  --min-instances 0 --max-instances 4 --memory 2Gi --timeout 600
+
+# --timeout 600 + 2Gi: large questionnaires (big skill matrices) take longer and
+# use more memory to generate. The Next.js agent-backed routes also set
+# `maxDuration` (Vercel Hobby caps at 60s); a normal questionnaire is ~10s, a
+# 40-item matrix ~20s.
 
 # AGENT_SHARED_SECRET must MATCH the value set on Vercel. When set, the agent
 # rejects any /questionnaire /evidence /review call missing a matching
