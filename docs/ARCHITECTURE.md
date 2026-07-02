@@ -174,15 +174,18 @@ and the agent-backed Next routes set `maxDuration`. A ~120-item matrix generates
 in ~30s. (Matrix-ness is per-item, so mixed questionnaires — some scale items,
 some free-text — work.)
 
-**Matrix fast path (very large pasted lists).** When the manager pastes a big
-delimited list (≥40 items), `/questionnaire` skips per-item model output entirely:
-`app/matrix.py` parses the items in code, a tiny `matrix_meta_agent` returns only
-the scale + title + refusal check (constant-size output), a deterministic screen
-checks item names for protected topics, and code builds one `single_choice`
-question per item. So a **446-item matrix generates in ~6s** (vs a 60s
-`FUNCTION_INVOCATION_TIMEOUT` before) — generation no longer scales with item
-count. Prose / short notes fall through to the normal workflow. (Chunk/map-reduce
-+ async for huge *non-matrix* bulk remain roadmap.)
+**Chunked generation (very large pasted matrices).** A big matrix in one LLM call
+is O(N) output → slow and can hit Vercel's 60s function cap. For a large sectioned
+paste, `/questionnaire` (`local_server.build_chunks` / `generate_chunked`) splits
+the notes into chunks of **whole sections** — each chunk carries the shared
+preamble + scale — runs plan generation per chunk **in parallel**
+(`asyncio.gather` + a concurrency cap) via `plan_workflow`, **merges** the plans,
+runs `safety_workflow` once, and expands. Because the chunks run concurrently, the
+total ≈ the slowest chunk + safety, so a ~400-item / 20-section matrix generates in
+~40s (vs a 60s `FUNCTION_INVOCATION_TIMEOUT` in a single pass) with **sections +
+per-section opt-in gates + the shared scale preserved**. Typical questionnaires
+(small notes) take the normal single-pass workflow. (Async + poll for even larger
+non-matrix bulk remains roadmap.)
 
 ### 2.1 Dynamic questionnaires (manager-driven)
 

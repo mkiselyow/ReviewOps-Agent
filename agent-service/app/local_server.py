@@ -12,9 +12,11 @@ with telemetry + GCP auth). The Next.js app calls these endpoints via
 Run:  uvicorn app.local_server:app --host 127.0.0.1 --port 8800
 """
 
+import asyncio
 import hmac
 import json
 import os
+import re
 import uuid
 
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "False")
@@ -59,16 +61,20 @@ from google.adk.apps import App
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
-from app.agent import matrix_meta_workflow, questionnaire_workflow
+from app.agent import (
+    expand_plan,
+    plan_workflow,
+    questionnaire_workflow,
+    safety_workflow,
+)
 from app.evidence import evidence_workflow
 from app.review import review_workflow
-from app.matrix import (
-    MATRIX_MIN_ITEMS,
-    build_matrix_questionnaire,
-    parse_pasted_items,
-    screen_items,
+from app.schemas import (
+    QuestionnaireOutput,
+    QuestionnairePlan,
+    QuestionnaireWithSafety,
+    SafetyReport,
 )
-from app.schemas import MatrixMeta, QuestionnaireOutput, QuestionnaireWithSafety, SafetyReport
 
 
 async def run_workflow(workflow, payload: dict) -> dict:
@@ -147,37 +153,105 @@ def health():
     return {"status": "ok"}
 
 
-async def _matrix_fast_path(body: dict, items: list[str]) -> dict:
-    """Large pasted list: parse items in code; the model only returns tiny
-    metadata (scale/title/refusal). Output is constant-size, so this stays fast
-    regardless of item count."""
-    meta = MatrixMeta(**await run_or_422(matrix_meta_workflow, body))
-    if meta.refused:
-        questionnaire = QuestionnaireOutput(
-            title=meta.title or "Questionnaire",
-            purpose=meta.purpose,
-            privacy_mode=meta.privacy_mode,
-            refused=True,
-            refusal_reason=meta.refusal_reason,
-            questions=[],
-        )
-        safety = SafetyReport(decision="needs_revision", notes=meta.refusal_reason)
-    else:
-        questionnaire = build_matrix_questionnaire(
-            items, meta, bool(body.get("require_evidence", True))
-        )
-        safety = screen_items(items)
+# --- Chunked generation (large questionnaires) ------------------------------
+# A big matrix in one LLM call is O(N) output → slow / 60s function timeout. We
+# split the pasted notes into chunks of WHOLE sections (sharing the preamble +
+# scale), generate each chunk's plan in PARALLEL, merge, run safety once, expand.
+CHUNK_TRIGGER_CHARS = 2500  # notes longer than this may be chunked
+CHUNK_MAX_CHARS = 1800  # per-chunk budget for the section text (excl. preamble)
+CHUNK_CONCURRENCY = 5  # parallel LLM calls (rate-limit guard)
+MAX_CHUNKS = 12
+
+
+def _is_section_block(block: str) -> bool:
+    """A blank-line-delimited block that looks like 'Section header\\nitem\\nitem…'
+    (short header line, not a sentence, not a scale block, ≥1 following line)."""
+    lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
+    if len(lines) < 2:
+        return False
+    head = lines[0]
+    if len(head) > 60 or head.endswith("."):
+        return False
+    if re.match(r"(?i)^(l\d|level\s*\d)\b", head):  # a scale block, not a section
+        return False
+    return True
+
+
+def build_chunks(notes: str) -> list[str]:
+    """Split notes into chunks, each = preamble + a group of whole section blocks
+    under the size budget. Returns [] when the notes don't look sectioned (caller
+    then uses the single-pass workflow)."""
+    blocks = [b for b in re.split(r"\n\s*\n", notes.strip()) if b.strip()]
+    first = next((i for i, b in enumerate(blocks) if _is_section_block(b)), None)
+    if first is None:
+        return []
+    preamble = "\n\n".join(blocks[:first]).strip()
+    sections = blocks[first:]
+
+    groups: list[list[str]] = []
+    cur: list[str] = []
+    cur_len = 0
+    for b in sections:
+        if cur and cur_len + len(b) > CHUNK_MAX_CHARS:
+            groups.append(cur)
+            cur, cur_len = [], 0
+        cur.append(b)
+        cur_len += len(b)
+    if cur:
+        groups.append(cur)
+
+    if len(groups) < 2:
+        return []
+    chunks = ["\n\n".join(([preamble] if preamble else []) + g) for g in groups]
+    return chunks[:MAX_CHUNKS]
+
+
+def _merge_plans(plans: list[QuestionnairePlan]) -> QuestionnairePlan:
+    items = []
+    scale = []
+    title = ""
+    purpose = ""
+    for p in plans:
+        items.extend(p.items)
+        if not scale and p.scale_legend:
+            scale = p.scale_legend
+        if not title and p.title:
+            title = p.title
+        if not purpose and p.purpose:
+            purpose = p.purpose
+    return QuestionnairePlan(
+        title=title or "Skills questionnaire",
+        purpose=purpose,
+        scale_legend=scale,
+        items=items,
+    )
+
+
+async def generate_chunked(body: dict, chunks: list[str]) -> dict:
+    sem = asyncio.Semaphore(CHUNK_CONCURRENCY)
+
+    async def one(chunk_text: str) -> QuestionnairePlan:
+        async with sem:
+            data = await run_or_422(plan_workflow, {**body, "notes": chunk_text})
+            return QuestionnairePlan(**data)
+
+    plans = await asyncio.gather(*[one(c) for c in chunks])
+    merged = _merge_plans(plans)
+
+    safety_data = await run_or_422(safety_workflow, merged.model_dump())
+    safety = SafetyReport(**safety_data)
+    questionnaire = expand_plan(merged)
     return QuestionnaireWithSafety(questionnaire=questionnaire, safety=safety).model_dump()
 
 
 @app.post("/questionnaire", dependencies=[Depends(require_agent_key)])
 async def questionnaire(body: dict):
-    """Generate + safety-review a questionnaire. Body: QuestionnaireInput-ish.
-    A large pasted item list takes the deterministic matrix fast path; otherwise
-    the normal LLM workflow runs."""
-    items = parse_pasted_items(body.get("notes") or "")
-    if len(items) >= MATRIX_MIN_ITEMS:
-        return await _matrix_fast_path(body, items)
+    """Generate + safety-review a questionnaire. A large sectioned paste is split
+    into parallel chunks (whole sections) and merged; otherwise a single pass."""
+    notes = body.get("notes") or ""
+    chunks = build_chunks(notes) if len(notes) > CHUNK_TRIGGER_CHARS else []
+    if len(chunks) >= 2:
+        return await generate_chunked(body, chunks)
     return await run_or_422(questionnaire_workflow, body)
 
 

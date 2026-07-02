@@ -33,7 +33,6 @@ from google.genai import types
 
 from .schemas import (
     GeneratedQuestion,
-    MatrixMeta,
     QuestionnaireOutput,
     QuestionnairePlan,
     QuestionnaireWithSafety,
@@ -231,43 +230,25 @@ questionnaire_workflow = Workflow(
 )
 
 
-# --- Matrix FAST PATH -------------------------------------------------------
-# When the manager pastes a LARGE delimited item list, code parses the items
-# (app/matrix.py) and only this tiny agent runs — it returns the scale + title +
-# refusal check, NEVER the items — so the model's output is constant-size and
-# generation no longer scales with item count (fixes the 60s function timeout).
-MATRIX_META_PROMPT = """You are given a manager's request whose `notes` contain a
-LARGE pasted list of items to rate. The items are parsed separately by code — DO
-NOT list, echo, or count them.
-
-Return ONLY compact metadata (MatrixMeta):
-- `title`, `purpose` for the questionnaire.
-- `scale_legend`: if the request describes a rating scale / levels (e.g. "L1
-  Awareness … L5 Expert"), return its levels ONCE as {label, description} with
-  SHORT labels in order; if the manager says the default is empty / NA / "not
-  familiar", make that the FIRST label. If NO scale is described, return an empty
-  list (the items will become free-text questions).
-- `privacy_mode`: default "named_review_evidence".
-- Refusal: if the request is DOMINATED by protected/sensitive topics (health,
-  family, religion, politics, nationality, private life, salary, immigration), set
-  `refused: true` and explain in `refusal_reason`. Otherwise `refused: false`.
-
-Keep the output tiny. Never enumerate the items."""
-
-matrix_meta_agent = Agent(
-    name="matrix_meta_agent",
-    model=_model(attempts=1),
-    instruction=MATRIX_META_PROMPT,
-    output_schema=MatrixMeta,
-    mode="single_turn",
+# --- Decomposed workflows for CHUNKED generation ----------------------------
+# For a very large questionnaire, local_server splits the input into chunks and
+# runs plan generation per chunk (in parallel), merges the plans, runs safety
+# once, then expands. These single-node workflows expose the two LLM steps;
+# `expand_plan` is the deterministic expansion reused on the merged plan.
+plan_workflow = Workflow(
+    name="questionnaire_plan_workflow",
+    edges=[("START", questionnaire_agent)],
 )
 
-# A single-turn agent can't be an App root directly (ADK requires chat mode for
-# that); wrap it in a one-node workflow so the runner can execute it.
-matrix_meta_workflow = Workflow(
-    name="matrix_meta_workflow",
-    edges=[("START", matrix_meta_agent)],
+safety_workflow = Workflow(
+    name="questionnaire_safety_workflow",
+    edges=[("START", safety_agent)],
 )
+
+
+def expand_plan(plan: QuestionnairePlan) -> QuestionnaireOutput:
+    """Public wrapper over the deterministic plan → questionnaire expansion."""
+    return _expand_plan(plan)
 
 # root_agent for the playground / agents-cli (incl. `agents-cli eval generate`)
 # is selectable via env so each workflow can be evaluated against its own golden
