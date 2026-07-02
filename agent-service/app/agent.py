@@ -16,7 +16,9 @@ safety agent reviews it for sensitive/leading questions and returns the
 questionnaire together with its safety verdict.
 """
 
+import json
 import os
+from typing import Any
 
 # API-key mode (Google AI Studio). google-genai reads GOOGLE_API_KEY from the
 # environment / .env when Vertex AI is disabled.
@@ -24,11 +26,12 @@ os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "False")
 
 from google.adk.agents import Agent
 from google.adk.apps import App
+from google.adk.events import Event
 from google.adk.models import Gemini
-from google.adk.workflow import Workflow
+from google.adk.workflow import Workflow, node
 from google.genai import types
 
-from .schemas import QuestionnaireOutput, QuestionnaireWithSafety
+from .schemas import QuestionnaireOutput, QuestionnaireWithSafety, SafetyReport
 
 QUESTIONNAIRE_PROMPT = """You are the Questionnaire Agent for an engineering
 performance-evidence tool. You receive a JSON request with the manager's intent:
@@ -95,43 +98,71 @@ ALWAYS (when not refusing):
   nationality, private life, salary, or immigration.
 - For a per-item matrix question, the `text` is just the item (e.g. the skill
   name); the levels live in `options`. Keep it concise.
-- Give each question a one-sentence `explanation`.
+- Give each question a one-sentence `explanation` — ONE short sentence, never a
+  paragraph. Never repeat the scale level descriptions inside a question (they
+  live once in `scale_legend`). Keep every field terse; even for many items the
+  output must stay compact.
 - Number `position` from 1 upward in display order (gates before their section's
   items).
 - Default privacy_mode to "named_review_evidence".
 Return only the structured questionnaire."""
 
 SAFETY_PROMPT = """You are the Questionnaire Safety Agent. You receive a
-generated questionnaire. Review every question and decide whether it is safe to
-send.
+generated questionnaire (with numbered `position`s). Review every question and
+return ONLY a safety verdict — do NOT echo the questionnaire back.
 
 Flag a question as risky if it touches health, family, politics, religion,
 nationality, private life, salary, or immigration, or if it is manipulative,
-accusatory, or leading; for each risky question give a safer alternative.
-Set decision to "needs_revision" if any question is risky, else "approved".
+accusatory, or leading. For each risky question add a `risky_questions` entry with
+its `position`, the `reason`, and a `safer_alternative`. Set `decision` to
+"needs_revision" if any question is risky, else "approved".
 
 If the questionnaire is REFUSED (`refused: true` / empty `questions`), the
-manager's request asked for prohibited topics — set decision to
+manager's request asked for prohibited topics — set `decision` to
 "needs_revision" and put the `refusal_reason` in `notes`. Do NOT report
 "approved": a refusal must be surfaced, never laundered into an all-clear.
 
-CRITICAL: copy the questionnaire into the `questionnaire` field BYTE-FOR-BYTE
-unchanged — same questions, count, order, options, sections, and flags. Do not
-rewrite, shorten, merge, or re-order anything. Put ONLY your review in `safety`."""
+Output only the SafetyReport (decision, risky_questions, notes). The app keeps the
+original questionnaire and pairs it with your verdict."""
 
 
-def _model() -> Gemini:
+def _model(attempts: int = 3) -> Gemini:
     return Gemini(
         model=os.environ.get("GEMINI_MODEL", "gemini-flash-latest"),
-        retry_options=types.HttpRetryOptions(attempts=3),
+        retry_options=types.HttpRetryOptions(attempts=attempts),
     )
+
+
+def _to_text(node_input: Any) -> str:
+    if node_input is None:
+        return "{}"
+    if isinstance(node_input, str):
+        return node_input
+    parts = getattr(node_input, "parts", None)
+    if parts:
+        return "".join(getattr(p, "text", "") or "" for p in parts)
+    if hasattr(node_input, "model_dump_json"):
+        return node_input.model_dump_json()
+    if isinstance(node_input, dict):
+        if "parts" in node_input and isinstance(node_input["parts"], list):
+            return "".join((p or {}).get("text", "") or "" for p in node_input["parts"])
+        return json.dumps(node_input)
+    return str(node_input)
+
+
+def _load_json(node_input: Any) -> dict:
+    return json.loads(_to_text(node_input).strip())
 
 
 questionnaire_agent = Agent(
     name="questionnaire_agent",
-    model=_model(),
+    # attempts=1: a too-large questionnaire truncates deterministically, so
+    # retrying only multiplies latency. Raise the output ceiling so large skill
+    # matrices fit in a single pass.
+    model=_model(attempts=1),
     instruction=QUESTIONNAIRE_PROMPT,
     output_schema=QuestionnaireOutput,
+    generate_content_config=types.GenerateContentConfig(max_output_tokens=32768),
     mode="single_turn",
 )
 
@@ -140,13 +171,34 @@ safety_agent = Agent(
     model=_model(),
     instruction=SAFETY_PROMPT,
     input_schema=QuestionnaireOutput,
-    output_schema=QuestionnaireWithSafety,
+    # Verdict ONLY — the questionnaire is threaded via state and re-attached by
+    # assemble_node, so the (possibly large) questionnaire JSON is emitted once.
+    output_schema=SafetyReport,
     mode="single_turn",
 )
 
+
+@node
+async def capture_node(node_input: Any):
+    """Parse the questionnaire, stash it in state, and pass it to the safety
+    agent as input. Keeps the big JSON out of the safety agent's OUTPUT."""
+    q = QuestionnaireOutput(**_load_json(node_input))
+    data = q.model_dump()
+    yield Event(output=data, state={"questionnaire": data})
+
+
+@node
+async def assemble_node(node_input: Any, questionnaire: Any = None):
+    """Pair the state-threaded questionnaire with the safety verdict into the
+    terminal QuestionnaireWithSafety (unchanged REST contract)."""
+    safety = SafetyReport(**_load_json(node_input))
+    q = QuestionnaireOutput(**(questionnaire or {}))
+    yield Event(output=QuestionnaireWithSafety(questionnaire=q, safety=safety).model_dump())
+
+
 questionnaire_workflow = Workflow(
     name="questionnaire_workflow",
-    edges=[("START", questionnaire_agent, safety_agent)],
+    edges=[("START", questionnaire_agent, capture_node, safety_agent, assemble_node)],
 )
 
 # root_agent for the playground / agents-cli (incl. `agents-cli eval generate`)

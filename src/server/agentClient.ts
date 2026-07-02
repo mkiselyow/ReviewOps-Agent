@@ -24,14 +24,39 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   const agentKey = process.env.AGENT_SHARED_SECRET;
   if (agentKey) headers["X-Agent-Key"] = agentKey;
 
-  const res = await fetch(`${baseUrl()}${path}`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
+  // Fail fast instead of hanging forever if the agent stalls.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl()}${path}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if ((err as Error).name === "AbortError") {
+      throw new Error(
+        "The agent took too long to respond (over 2 minutes). Try a smaller questionnaire, or try again.",
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`agent-service ${path} ${res.status}: ${detail.slice(0, 200)}`);
+    // Surface the agent's own message (FastAPI `detail`, or our `error`) so the
+    // UI shows e.g. "too large — split it" rather than a raw status dump.
+    const raw = await res.text().catch(() => "");
+    let msg = `agent service error (${res.status})`;
+    try {
+      const j = JSON.parse(raw) as { detail?: string; error?: string };
+      msg = j.detail ?? j.error ?? msg;
+    } catch {
+      if (raw) msg = raw.slice(0, 200);
+    }
+    throw new Error(msg);
   }
   return (await res.json()) as T;
 }

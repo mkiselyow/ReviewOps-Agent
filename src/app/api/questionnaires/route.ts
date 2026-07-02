@@ -8,6 +8,10 @@ import {
 import { orchestrateQuestionnaireGeneration } from "@/server/agents/orchestrator";
 import { logAudit } from "@/server/services/auditService";
 
+// Agent generation can take tens of seconds for large questionnaires — give the
+// serverless function room (Vercel Hobby caps at 60s; raise if on a higher plan).
+export const maxDuration = 60;
+
 const bodySchema = z.object({
   topic: z.string().min(1, "Topic is required"),
   purpose: z.string().optional(),

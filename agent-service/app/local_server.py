@@ -54,6 +54,7 @@ if not os.environ.get("DISABLE_LOCAL_OTEL"):
     _otel_trace.set_tracer_provider(_provider)
 
 from fastapi import Depends, FastAPI, Header, HTTPException
+from pydantic import ValidationError
 from google.adk.apps import App
 from google.adk.runners import InMemoryRunner
 from google.genai import types
@@ -98,6 +99,27 @@ async def run_workflow(workflow, payload: dict) -> dict:
     return {"error": "no output produced"}
 
 
+_TOO_LARGE_MSG = (
+    "The request produced output too large to complete in one pass — reduce the "
+    "number of items or split it into smaller sections, then try again."
+)
+
+
+async def run_or_422(workflow, body: dict) -> dict:
+    """Run a workflow, mapping truncated/oversized-output failures (a model that
+    exceeded its token budget → invalid/incomplete JSON → schema validation error)
+    to a clean 422 with guidance, instead of an opaque 500."""
+    try:
+        return await run_workflow(workflow, body)
+    except (ValidationError, json.JSONDecodeError):
+        raise HTTPException(status_code=422, detail=_TOO_LARGE_MSG)
+    except Exception as exc:  # noqa: BLE001 — inspect ADK-wrapped node failures
+        blob = f"{type(exc).__name__}: {exc}".lower()
+        if any(k in blob for k in ("json", "validation", "eof", "node execution failed")):
+            raise HTTPException(status_code=422, detail=_TOO_LARGE_MSG)
+        raise
+
+
 app = FastAPI(title="reviewops-agent-local")
 
 
@@ -121,19 +143,19 @@ def health():
 @app.post("/questionnaire", dependencies=[Depends(require_agent_key)])
 async def questionnaire(body: dict):
     """Generate + safety-review a questionnaire. Body: QuestionnaireInput-ish."""
-    return await run_workflow(questionnaire_workflow, body)
+    return await run_or_422(questionnaire_workflow, body)
 
 
 @app.post("/evidence", dependencies=[Depends(require_agent_key)])
 async def evidence(body: dict):
     """Validate evidence + confidence-gated routing. Body: EvidenceInput."""
-    return await run_workflow(evidence_workflow, body)
+    return await run_or_422(evidence_workflow, body)
 
 
 @app.post("/review", dependencies=[Depends(require_agent_key)])
 async def review(body: dict):
     """Generate a grounded review draft + fairness report. Body: ReviewContextInput."""
-    return await run_workflow(review_workflow, body)
+    return await run_or_422(review_workflow, body)
 
 
 if __name__ == "__main__":

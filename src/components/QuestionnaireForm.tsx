@@ -107,6 +107,12 @@ export default function QuestionnaireForm({
         </p>
       </div>
       <button disabled={busy}>{busy ? "Generating…" : "Generate questions"}</button>
+      {busy && (
+        <p className="small muted" style={{ marginTop: 8 }}>
+          Generating… a large questionnaire (many skills/items) can take up to a
+          minute.
+        </p>
+      )}
     </form>
   );
 }

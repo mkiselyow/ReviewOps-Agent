@@ -8,6 +8,9 @@ import {
 import { orchestrateQuestionnaireRegeneration } from "@/server/agents/orchestrator";
 import { logAudit } from "@/server/services/auditService";
 
+// Agent regeneration can take tens of seconds (Vercel Hobby caps at 60s).
+export const maxDuration = 60;
+
 const bodySchema = z.object({ feedback: z.string().trim().min(1).max(4000) });
 
 export async function POST(

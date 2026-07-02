@@ -8,6 +8,9 @@ import {
 import { orchestrateReviewGeneration } from "@/server/agents/orchestrator";
 import { logAudit } from "@/server/services/auditService";
 
+// Review generation involves an LLM call — give the function headroom.
+export const maxDuration = 60;
+
 const bodySchema = z.object({
   employeeId: z.string().min(1),
   period: z.string().min(1),
