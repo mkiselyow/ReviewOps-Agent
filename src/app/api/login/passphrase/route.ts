@@ -17,15 +17,33 @@ function constantTimeEquals(a: string, b: string): boolean {
 }
 
 /**
- * Passphrase sign-in for the REAL manager account (not shown in the demo
- * switcher). On success, starts a session for MANAGER_USER_ID. Throttled per
- * client to blunt brute-force attempts.
+ * Real-manager passphrase logins, read from env. Supports multiple managers:
+ * MANAGER_PASSPHRASE / MANAGER_USER_ID (the first), then MANAGER_PASSPHRASE_2 /
+ * MANAGER_USER_ID_2, _3, … Each passphrase maps to one real (non-test) manager.
+ */
+function managerLogins(): { passphrase: string; userId: string }[] {
+  const keys: [string, string][] = [["MANAGER_PASSPHRASE", "MANAGER_USER_ID"]];
+  for (let i = 2; i <= 9; i++) {
+    keys.push([`MANAGER_PASSPHRASE_${i}`, `MANAGER_USER_ID_${i}`]);
+  }
+  const out: { passphrase: string; userId: string }[] = [];
+  for (const [pk, uk] of keys) {
+    const passphrase = process.env[pk];
+    const userId = process.env[uk];
+    if (passphrase && userId) out.push({ passphrase, userId });
+  }
+  return out;
+}
+
+/**
+ * Passphrase sign-in for a REAL manager account (not shown in the demo
+ * switcher). On success, starts a session for the matching manager. Throttled
+ * per client to blunt brute-force attempts.
  */
 export async function POST(req: Request) {
   try {
-    const expected = process.env.MANAGER_PASSPHRASE;
-    const managerId = process.env.MANAGER_USER_ID;
-    if (!expected || !managerId) {
+    const logins = managerLogins();
+    if (logins.length === 0) {
       throw new PermissionError("Passphrase sign-in is not configured");
     }
 
@@ -38,18 +56,23 @@ export async function POST(req: Request) {
 
     const { passphrase } = bodySchema.parse(await req.json());
 
-    if (!constantTimeEquals(passphrase, expected)) {
+    // Compare against every configured passphrase (no early exit on match).
+    let matchedId: string | null = null;
+    for (const login of logins) {
+      if (constantTimeEquals(passphrase, login.passphrase)) matchedId = login.userId;
+    }
+    if (!matchedId) {
       logAudit({
         actorId: null,
         action: "access_denied",
         resourceType: "user",
-        resourceId: managerId,
+        resourceId: null,
         metadata: { reason: "bad_passphrase" },
       });
       throw new AuthError("Incorrect passphrase");
     }
 
-    const manager = await getUserById(managerId);
+    const manager = await getUserById(matchedId);
     if (!manager || manager.isTestUser) {
       // Misconfiguration guard: the target must be a real (non-test) user.
       throw new PermissionError("Manager account is not available");

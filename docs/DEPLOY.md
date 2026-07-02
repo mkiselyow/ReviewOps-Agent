@@ -89,7 +89,7 @@ Import the GitHub repo in Vercel (or `vercel` CLI), then set **Environment Varia
 | `TOKEN_EXPIRY_HOURS` | `168` |
 | `SESSION_SECRET` | random 32+ bytes — signs the session cookie (anti-forgery) |
 | `AGENT_SHARED_SECRET` | random secret — **must match** the value set on Cloud Run (step 1) |
-| `MANAGER_PASSPHRASE` | (optional) enables real-manager passphrase sign-in |
+| `MANAGER_PASSPHRASE` | (optional) enables real-manager passphrase sign-in. Add more managers with `MANAGER_PASSPHRASE_2` / `MANAGER_USER_ID_2`, `_3`, … |
 | `MANAGER_USER_ID` | (optional) the real manager's seed id (e.g. `u_real_manager`) |
 | `AGENT_RATE_LIMIT_PER_HOUR` | (optional) per-manager agent-call budget, default `30` |
 
