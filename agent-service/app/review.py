@@ -144,6 +144,20 @@ Sections, in this exact order:
 - `Suggested Next-Period Goals`.
 - `Evidence References` — each cited id with its summary.
 
+You MUST include EVERY section header below, in this exact order, even when a
+section is empty (then write "None."). `Role-Expectation Coverage` is REQUIRED and
+must contain exactly one bullet per role expectation provided. Use these literal
+Markdown headers:
+
+## Summary
+## Role-Expectation Coverage
+## Achievements
+## Evidence-Backed Examples
+## Growth Areas
+## Requests for More Information
+## Suggested Next-Period Goals
+## Evidence References
+
 Do NOT discuss compensation, promotion, ranking, or sensitive personal data.
 Do NOT include the employee's name (the app adds the heading).
 Set evidence_references to the ids you cited.

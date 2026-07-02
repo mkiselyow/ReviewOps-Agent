@@ -72,9 +72,15 @@ One-time **GCP prerequisites** (learned the hard way — a fresh AI-Studio
 Use `--region global` for `grade` (a regional autorater 403s with "model may not
 exist"). `agents-cli` shells out to `uv`, so `uv` must be on PATH.
 
-**Baseline (2026-07):** questionnaire 4.43 → **5.00** after the hard-refuse polish
-(§2.4), evidence **5.00**, review **5.00** (1–5 LLM-as-judge). Residual: the Vertex
-autorater occasionally emits unparseable JSON (external flake).
+**Baseline (2026-07, full re-run) — see [EVAL_RESULTS.md](EVAL_RESULTS.md):**
+questionnaire **4.67**, evidence **5.00**, review **3.89 → 5.00** (1–5
+LLM-as-judge). The review re-run after the role-matrix rewrite surfaced two fixes:
+a mandatory section template in `REVIEW_DRAFT_PROMPT` (missing Role-Expectation
+Coverage / Requests-for-Info), and a **judge calibration** so forward-looking
+Growth Areas / Suggested Goals aren't penalized as fabrication (only *past-fact*
+claims must be cited). The `review_quality` rubric now scores role-expectation
+calibration + those sections. Residual: the Vertex autorater occasionally emits
+unparseable JSON (external flake), dropped from the mean.
 
 ## 1. Evaluation Goals
 

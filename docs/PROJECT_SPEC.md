@@ -10,8 +10,9 @@
 > raw-text + concern capture; **manager evidence views** (raw quote + agent
 > concern); and a **mock BambooHR/Lattice connector** behind typed contracts whose
 > peer-review / feedback / 1:1 signals ground the review draft (transient, not
-> stored). Still postponed: the **annual review-cycle reminder** event and deploy.
-> The agent service requires a Gemini API key (no offline mock).
+> stored). **Deployed live** (Vercel + Cloud Run + Turso) and **evaluated on
+> Vertex** (see [EVAL_RESULTS.md](EVAL_RESULTS.md)). Still postponed: the **annual
+> review-cycle reminder** event. The agent service requires a Gemini API key.
 
 ## 1. Project Name
 

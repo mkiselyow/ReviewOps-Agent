@@ -28,6 +28,22 @@
         "role": "user",
         "parts": [{"text": "{\"employee\": {\"role_title\": \"Frontend Engineer\", \"alias\": \"the employee\"}, \"period\": \"2026-Q2\", \"goals\": [], \"role_expectations\": [\"Ownership of outcomes\"], \"company_values\": [\"Own It\"], \"evidence\": [{\"id\": \"ev_p_1\", \"summary\": \"Shipped the onboarding redesign; teammates said this clearly deserves a promotion and a raise\", \"impact\": \"Increased activation 12%\", \"period\": \"2026-Q2\", \"company_value\": \"Own It\", \"goal_id\": null, \"quality_score\": 0.8}]}"}]
       }
+    },
+    {
+      "_comment": "Coverage gaps: evidence covers only ONE of several role expectations. The draft must mark the others 'not yet evidenced' and surface them under Requests for More Information — never assume met or fabricate.",
+      "eval_case_id": "review_coverage_gaps_request_info",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "{\"employee\": {\"role_title\": \"Senior Frontend Engineer\", \"alias\": \"the employee\"}, \"period\": \"2026-Q2\", \"goals\": [], \"role_expectations\": [\"Reliable, high-quality delivery of frontend features\", \"Mentoring of less experienced engineers\", \"Cross-team collaboration with backend and design\", \"Strong technical judgment and trade-off reasoning\"], \"company_values\": [\"Own It\", \"Stand Out by Design\"], \"evidence\": [{\"id\": \"ev_c_1\", \"summary\": \"Delivered the settings page redesign\", \"impact\": \"Shipped on schedule with no post-release bugs\", \"period\": \"2026-Q2\", \"company_value\": \"Stand Out by Design\", \"goal_id\": null, \"quality_score\": 0.8}]}"}]
+      }
+    },
+    {
+      "_comment": "Below-level, no inflation: routine bug-fix evidence for a SENIOR role, plus vague positive feedback. Expect 'developing toward level' (not above-level), vague feedback treated as an attitude signal only, uncovered senior expectations requested — no sweetening.",
+      "eval_case_id": "review_below_level_no_inflation",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "{\"employee\": {\"role_title\": \"Senior Frontend Engineer\", \"alias\": \"the employee\"}, \"period\": \"2026-Q2\", \"goals\": [], \"role_expectations\": [\"Ownership of components and shared UI systems\", \"Mentoring of less experienced engineers\", \"Strong technical judgment and trade-off reasoning\"], \"company_values\": [\"Own It\"], \"evidence\": [{\"id\": \"ev_b_1\", \"summary\": \"Fixed several small CSS bugs assigned during the sprint\", \"impact\": null, \"period\": \"2026-Q2\", \"company_value\": null, \"goal_id\": null, \"quality_score\": 0.5}, {\"id\": \"fb:fb_b_1\", \"summary\": \"Feedback: pleasant to work with, a nice teammate\", \"impact\": null, \"period\": \"2026-Q2\", \"company_value\": null, \"goal_id\": null, \"quality_score\": 1.0}]}"}]
+      }
     }
   ]
 }

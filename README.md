@@ -167,9 +167,10 @@ review grounding (incl. connector signals), the dynamic-questionnaire
 **normalizer invariants**, the survey-form logic + **RTL component tests**
 (jsdom), the evidence **confirm-before-store / dedup / lock** flow, the deadline
 **reminders/nudges**, and the **connector** contracts. Agent *behavior* is evaluated separately with
-`agents-cli eval` (golden datasets + LLM-as-judge; see
-[docs/EVALUATION_PLAN.md](docs/EVALUATION_PLAN.md)) plus a no-GCP
-`agent-service/tests/eval/structural_smoke.py`.
+`agents-cli eval` (golden datasets + LLM-as-judge on Vertex; framework in
+[docs/EVALUATION_PLAN.md](docs/EVALUATION_PLAN.md), **latest scores in
+[docs/EVAL_RESULTS.md](docs/EVAL_RESULTS.md)** — questionnaire 4.67, evidence 5.00,
+review 5.00) plus a no-GCP `agent-service/tests/eval/structural_smoke.py`.
 
 ## Limitations
 

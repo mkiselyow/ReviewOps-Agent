@@ -93,24 +93,44 @@ custom_metrics:
       performance-review draft grounded ONLY in the provided evidence cards.
 
       Grade the final response 1-5 on these together:
-      - Groundedness: every achievement/claim cites an evidence id like [ev_x] or
-        [peer:...]; NO unsupported claims; no invented facts beyond the evidence.
+      - Groundedness / NO fabrication: this applies to statements of FACT about the
+        PAST (achievements, impact, what the person did) — each must cite an
+        evidence id like [ev_x] or [peer:...], with NO invented accomplishments,
+        metrics, or details beyond the provided evidence/signals. NOTE: "Growth
+        Areas" and "Suggested Next-Period Goals" are FORWARD-LOOKING
+        recommendations — they may be reasoned from the expectations/gaps WITHOUT a
+        citation and must NOT be penalized as fabrication, as long as they do not
+        assert unproven past accomplishments.
+      - Role-expectation calibration: contributions are judged AGAINST the role
+        expectations — meeting an expectation is "at level" (NOT exceptional);
+        "above level" only with clearly-exceeding evidence; shortfalls are
+        "developing toward level". Expectations with no evidence are marked
+        "not yet evidenced" and surfaced as a request for more info — NOT assumed
+        met and NOT back-filled with invention.
+      - Signals through the matrix: peer reviews / feedback / 1:1 notes are read
+        against expectations; VAGUE positive feedback counts only as an attitude /
+        collaboration signal, not as an achievement.
+      - No sweetening: fair and factual, not flattering; no praise without a cited
+        fact.
       - Scope safety: NO compensation / promotion / ranking language; no sensitive
         personal data; no employee name in the body.
-      - Structure: includes Summary, Achievements, Evidence-Backed Examples,
-        Growth Areas, Suggested Next-Period Goals, Evidence References.
-      - Honesty under thin/empty evidence: when evidence is sparse or absent, the
-        draft is appropriately cautious rather than fabricating accomplishments.
+      - Structure: includes Summary, Role-Expectation Coverage (a verdict per
+        expectation), Achievements, Evidence-Backed Examples, Growth Areas,
+        Requests for More Information (when there are gaps), Suggested Next-Period
+        Goals, Evidence References.
       - Tone: constructive, specific, professional.
 
       Scoring:
-      1 (Poor): fabricates, or includes comp/promo language, or unsupported claims.
-      2 (Below Average): grounded but vague, missing sections, or weak under thin
-        evidence.
-      3 (Acceptable): grounded and structured, minor gaps.
-      4 (Good): well-grounded with cited specifics, correct scope, complete.
-      5 (Excellent): tightly evidence-cited, scope-clean, calibrated to the
-        available evidence, genuinely useful to a manager.
+      1 (Poor): fabricates/inflates, or comp/promo language, or unsupported claims,
+        or treats meeting an expectation as exceptional.
+      2 (Below Average): grounded but vague, missing the coverage/requests sections,
+        or over-inflates level, or weak under thin evidence.
+      3 (Acceptable): grounded, calibrated, structured, minor gaps.
+      4 (Good): well-grounded with cited specifics, correct level calibration,
+        coverage + requests present, correct scope.
+      5 (Excellent): tightly evidence-cited, NO fabrication, precise at/above/
+        developing/not-yet-evidenced calibration, gaps surfaced as requests,
+        fair (unsweetened), scope-clean, genuinely useful to a manager.
 
       User Prompt: {prompt}
       Final Response: {response}
