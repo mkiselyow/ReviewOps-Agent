@@ -172,8 +172,17 @@ attempt; if a plan still overflows, `local_server` returns a clean **422** ("too
 large — split it"), never an opaque 500; the TS `agentClient` adds a 120s timeout
 and the agent-backed Next routes set `maxDuration`. A ~120-item matrix generates
 in ~30s. (Matrix-ness is per-item, so mixed questionnaires — some scale items,
-some free-text — work; expanding a *pasted* list in code and chunking/async for
-huge non-matrix bulk are roadmap items.)
+some free-text — work.)
+
+**Matrix fast path (very large pasted lists).** When the manager pastes a big
+delimited list (≥40 items), `/questionnaire` skips per-item model output entirely:
+`app/matrix.py` parses the items in code, a tiny `matrix_meta_agent` returns only
+the scale + title + refusal check (constant-size output), a deterministic screen
+checks item names for protected topics, and code builds one `single_choice`
+question per item. So a **446-item matrix generates in ~6s** (vs a 60s
+`FUNCTION_INVOCATION_TIMEOUT` before) — generation no longer scales with item
+count. Prose / short notes fall through to the normal workflow. (Chunk/map-reduce
++ async for huge *non-matrix* bulk remain roadmap.)
 
 ### 2.1 Dynamic questionnaires (manager-driven)
 

@@ -58,10 +58,15 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
   `agentClient` timeout + route `maxDuration`. A ~120-item matrix generates in ~30s.
 - ⬜ Optional: Python service → **Agent Runtime** (`agents-cli deploy`) to showcase
   ADK-native deploy; `RequestInput` HITL for the weak-evidence pause.
-- ⬜ **Even-larger inputs:** parse a manager-**pasted** item list in code (model
-  emits nothing per item); **chunk/map-reduce** for huge *non-matrix* bulk;
-  **async generation** (POST → "generating" id, client polls; optionally Cloud Run
-  writes back to Turso) to remove the 60s function-timeout ceiling entirely.
+- ✅ **Matrix fast path (very large pasted lists).** When the manager pastes a big
+  delimited list (≥40 items), items are parsed in code and a tiny `matrix_meta_agent`
+  returns only the scale/title/refusal; a deterministic screen + code build one
+  question per item. Constant-size model output → a 446-item matrix builds in ~6s
+  (was a 60s function timeout). `agent-service/app/matrix.py`.
+- ⬜ **Even-larger / non-matrix bulk:** **chunk/map-reduce** for huge *heterogeneous*
+  questionnaires; **async generation** (POST → "generating" id, client polls;
+  optionally Cloud Run writes back to Turso) to remove the 60s function-timeout
+  ceiling entirely.
 
 ### B. Ambient (event-driven)
 - ✅ **In-app deadlines & nudges** — questionnaire `deadline`, overdue detection,
