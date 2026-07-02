@@ -125,6 +125,22 @@ class QuestionnairePlan(BaseModel):
     items: list[PlanItem] = Field(default_factory=list)
 
 
+class MatrixMeta(BaseModel):
+    """Tiny metadata for the matrix FAST PATH: when the manager pasted a large
+    delimited item list, code parses the items and only the model's small,
+    constant-size output (title/purpose/scale/refusal) is needed — so generation
+    no longer scales with item count."""
+
+    title: str
+    purpose: str = ""
+    privacy_mode: PrivacyMode = "named_review_evidence"
+    # The shared rating scale, if the request describes one; empty → items become
+    # long_text questions.
+    scale_legend: list[ScaleLevel] = Field(default_factory=list)
+    refused: bool = False
+    refusal_reason: str = ""
+
+
 # --- Questionnaire safety review ---------------------------------------------
 
 class RiskyQuestion(BaseModel):

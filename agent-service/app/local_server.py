@@ -59,9 +59,16 @@ from google.adk.apps import App
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
-from app.agent import questionnaire_workflow
+from app.agent import matrix_meta_workflow, questionnaire_workflow
 from app.evidence import evidence_workflow
 from app.review import review_workflow
+from app.matrix import (
+    MATRIX_MIN_ITEMS,
+    build_matrix_questionnaire,
+    parse_pasted_items,
+    screen_items,
+)
+from app.schemas import MatrixMeta, QuestionnaireOutput, QuestionnaireWithSafety, SafetyReport
 
 
 async def run_workflow(workflow, payload: dict) -> dict:
@@ -140,9 +147,37 @@ def health():
     return {"status": "ok"}
 
 
+async def _matrix_fast_path(body: dict, items: list[str]) -> dict:
+    """Large pasted list: parse items in code; the model only returns tiny
+    metadata (scale/title/refusal). Output is constant-size, so this stays fast
+    regardless of item count."""
+    meta = MatrixMeta(**await run_or_422(matrix_meta_workflow, body))
+    if meta.refused:
+        questionnaire = QuestionnaireOutput(
+            title=meta.title or "Questionnaire",
+            purpose=meta.purpose,
+            privacy_mode=meta.privacy_mode,
+            refused=True,
+            refusal_reason=meta.refusal_reason,
+            questions=[],
+        )
+        safety = SafetyReport(decision="needs_revision", notes=meta.refusal_reason)
+    else:
+        questionnaire = build_matrix_questionnaire(
+            items, meta, bool(body.get("require_evidence", True))
+        )
+        safety = screen_items(items)
+    return QuestionnaireWithSafety(questionnaire=questionnaire, safety=safety).model_dump()
+
+
 @app.post("/questionnaire", dependencies=[Depends(require_agent_key)])
 async def questionnaire(body: dict):
-    """Generate + safety-review a questionnaire. Body: QuestionnaireInput-ish."""
+    """Generate + safety-review a questionnaire. Body: QuestionnaireInput-ish.
+    A large pasted item list takes the deterministic matrix fast path; otherwise
+    the normal LLM workflow runs."""
+    items = parse_pasted_items(body.get("notes") or "")
+    if len(items) >= MATRIX_MIN_ITEMS:
+        return await _matrix_fast_path(body, items)
     return await run_or_422(questionnaire_workflow, body)
 
 
