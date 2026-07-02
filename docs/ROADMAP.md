@@ -49,16 +49,19 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
 - ✅ **Deployed live** — Python agent service → **Cloud Run** (Vertex mode, no key in
   image); Next.js frontend → **Vercel** backed by **Turso/libSQL** (dual-driver).
   Live demo: **https://reviewops-agent.vercel.app**. See [DEPLOY.md](DEPLOY.md).
-- ✅ **Large-generation reliability (hardened sync)** — safety agent emits a
-  verdict only (questionnaire threaded via state + reassembled), raised
-  `max_output_tokens`, graceful **422** on oversize instead of 500, client-side
-  timeout, and `maxDuration` on agent routes. A ~40-item matrix generates in ~20s.
+- ✅ **Large-questionnaire scaling — deterministic plan-expansion.** The
+  questionnaire agent emits a **compact plan** (items once + one shared scale,
+  per-item `uses_scale`); a deterministic `expand_node` builds the full
+  questionnaire in code (scale stamped on matrix items, opt-in gates, sections).
+  Safety reviews the plan and returns a verdict only. Model output stays small/
+  bounded → no truncation/500; graceful **422** if a plan still overflows;
+  `agentClient` timeout + route `maxDuration`. A ~120-item matrix generates in ~30s.
 - ⬜ Optional: Python service → **Agent Runtime** (`agents-cli deploy`) to showcase
   ADK-native deploy; `RequestInput` HITL for the weak-evidence pause.
-- ⬜ **Async generation** for pathologically large questionnaires: POST returns a
-  "generating" id and the client polls a status endpoint until ready/failed
-  (optionally Cloud Run writes results back to Turso to fully decouple from the
-  Vercel function timeout). Deferred — sync is sufficient at current sizes.
+- ⬜ **Even-larger inputs:** parse a manager-**pasted** item list in code (model
+  emits nothing per item); **chunk/map-reduce** for huge *non-matrix* bulk;
+  **async generation** (POST → "generating" id, client polls; optionally Cloud Run
+  writes back to Turso) to remove the 60s function-timeout ceiling entirely.
 
 ### B. Ambient (event-driven)
 - ✅ **In-app deadlines & nudges** — questionnaire `deadline`, overdue detection,

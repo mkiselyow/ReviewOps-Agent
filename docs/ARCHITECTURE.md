@@ -130,7 +130,7 @@ routing) lives in `@node` functions — "write software, not rules."
 flowchart LR
   subgraph QW["Questionnaire workflow"]
     direction LR
-    S1((START)) --> QA[questionnaire_agent] --> CN["capture_node<br/>(→ state)"] --> SA["safety_agent<br/>(verdict only)"] --> AN["assemble_node"] --> QO[/QuestionnaireWithSafety/]
+    S1((START)) --> QA["questionnaire_agent<br/>(compact plan)"] --> CN["capture_node<br/>(→ state)"] --> SA["safety_agent<br/>(verdict only)"] --> AN["expand_node<br/>(plan → questions)"] --> QO[/QuestionnaireWithSafety/]
   end
 
   subgraph EW["Evidence workflow"]
@@ -149,25 +149,31 @@ flowchart LR
 
 | Workflow | Nodes | Status |
 | --- | --- | --- |
-| Questionnaire | `questionnaire_agent → capture_node → safety_agent → assemble_node` | ✅ live via REST; dynamic structure + scale legend |
+| Questionnaire | `questionnaire_agent → capture_node → safety_agent → expand_node` | ✅ live via REST; dynamic structure + scale legend |
 | Evidence | `security_node → evidence_validator → finalize_node` (confidence routing) | ✅ live via REST; confidence-gated routing |
 | Review | `privacy_node → review_draft_agent → fairness_node` | ✅ live via REST; grounded + fairness report |
 
 All three run live against Gemini (`gemini-2.5-flash`) via the local REST server
 (`app/local_server.py`) and are wired into the TS app over `AGENT_SERVICE_URL`.
 
-**Single-emission safety (scaling).** The safety agent returns only a
-`SafetyReport` (verdict); the (possibly large) questionnaire JSON is emitted
-**once** by `questionnaire_agent`, threaded through `capture_node`'s state, and
-re-attached by the deterministic `assemble_node` into the terminal
-`QuestionnaireWithSafety`. This avoids a second full copy of a big skill-matrix —
-which previously doubled output tokens and could truncate the response.
-`questionnaire_agent` raises `max_output_tokens` (32k) and uses a single attempt
-(truncation is deterministic — retrying only adds latency). If output still
-exceeds the budget, `local_server` returns a clean **422** ("too large — split
-it"), never an opaque 500; the TS `agentClient` adds a 120s timeout and the
-agent-backed Next routes set `maxDuration`. Large matrices (~40 items) generate in
-~20s.
+**Compact plan + deterministic expansion (scaling).** `questionnaire_agent` emits
+a **compact `QuestionnairePlan`** — each item listed ONCE, the rating scale listed
+once, with a per-item `uses_scale` flag — not fully-expanded questions. It's
+threaded through `capture_node`'s state; `safety_agent` reviews the plan and
+returns only a `SafetyReport` (verdict); then the deterministic `expand_node`
+builds the full `QuestionnaireOutput` in code — stamping the shared scale options
+onto matrix items, Yes/No opt-in gates, sections, and positions — and pairs it
+with the verdict into the terminal `QuestionnaireWithSafety`. Because the model's
+output stays small and bounded regardless of item count, a big skill matrix no
+longer truncates or blows the latency budget (previously the model emitted every
+question with repeated options → a ~5.7k-line JSON that exceeded the token limit
+and 500'd). `questionnaire_agent` also keeps `max_output_tokens` (32k) + a single
+attempt; if a plan still overflows, `local_server` returns a clean **422** ("too
+large — split it"), never an opaque 500; the TS `agentClient` adds a 120s timeout
+and the agent-backed Next routes set `maxDuration`. A ~120-item matrix generates
+in ~30s. (Matrix-ness is per-item, so mixed questionnaires — some scale items,
+some free-text — work; expanding a *pasted* list in code and chunking/async for
+huge non-matrix bulk are roadmap items.)
 
 ### 2.1 Dynamic questionnaires (manager-driven)
 

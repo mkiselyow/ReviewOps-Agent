@@ -38,9 +38,10 @@ gcloud run deploy reviewops-agent \
   --min-instances 0 --max-instances 4 --memory 2Gi --timeout 600
 
 # --timeout 600 + 2Gi: large questionnaires (big skill matrices) take longer and
-# use more memory to generate. The Next.js agent-backed routes also set
-# `maxDuration` (Vercel Hobby caps at 60s); a normal questionnaire is ~10s, a
-# 40-item matrix ~20s.
+# use more memory to generate. The agent uses deterministic plan-expansion (the
+# model emits a compact plan; code expands it), so the Next.js agent-backed routes'
+# `maxDuration` (Vercel Hobby caps at 60s) is enough — a normal questionnaire is
+# ~10s, a ~120-item matrix ~30s.
 
 # AGENT_SHARED_SECRET must MATCH the value set on Vercel. When set, the agent
 # rejects any /questionnaire /evidence /review call missing a matching

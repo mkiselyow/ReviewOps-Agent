@@ -12,7 +12,7 @@ Service (LLM-as-judge, position-swapped) · scores **1–5**.
 
 | Workflow | Nodes | Golden cases | Mean score | Notes |
 | --- | --- | --- | --- | --- |
-| **Questionnaire** | `questionnaire → capture → safety → assemble` | 8 | **4.67** | incl. accusatory + protected-topic **safety hard-refuse** probes |
+| **Questionnaire** | `questionnaire → capture → safety → expand` | 8 | **4.67** | incl. accusatory + protected-topic **safety hard-refuse** probes |
 | **Evidence** | `security → validator → finalize` | 8 | **5.00** | calibration (weak/strong/borderline) + PII/prompt-injection robustness |
 | **Review** | `privacy → draft → fairness` | 6 | **5.00** | after the polish below (**3.89 → 5.00**) |
 
