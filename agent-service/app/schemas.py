@@ -91,6 +91,40 @@ class QuestionnaireOutput(BaseModel):
     questions: list[GeneratedQuestion]
 
 
+# --- Questionnaire PLAN (compact; expanded to QuestionnaireOutput in code) ----
+
+class PlanItem(BaseModel):
+    """One line of the compact plan. A matrix cell (`uses_scale=True`) becomes a
+    single_choice question over the shared scale; otherwise it becomes a question
+    of `type`. Kept tiny so the model emits N items cheaply without repeating
+    the scale/options per item (which truncates for large matrices)."""
+
+    text: str
+    section: str = ""
+    # True → single_choice over the questionnaire's shared scale_legend labels.
+    uses_scale: bool = False
+    # Used only when uses_scale is False (and it is not an opt-in gate).
+    type: QuestionType = "long_text"
+    evidence_required: bool = False
+    # Section yes/no opt-in gate (expanded to a single_choice Yes/No).
+    opt_in: bool = False
+    explanation: str = ""
+
+
+class QuestionnairePlan(BaseModel):
+    """Compact generator output. `items` lists each question ONCE (the scale is
+    listed once in `scale_legend`); code expands it into QuestionnaireOutput.
+    This keeps the model's output small and bounded regardless of item count."""
+
+    title: str
+    purpose: str
+    privacy_mode: PrivacyMode = "named_review_evidence"
+    refused: bool = False
+    refusal_reason: str = ""
+    scale_legend: list[ScaleLevel] = Field(default_factory=list)
+    items: list[PlanItem] = Field(default_factory=list)
+
+
 # --- Questionnaire safety review ---------------------------------------------
 
 class RiskyQuestion(BaseModel):
