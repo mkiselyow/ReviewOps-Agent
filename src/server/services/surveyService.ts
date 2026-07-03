@@ -22,7 +22,7 @@ import {
   PermissionError,
 } from "../auth/permissions";
 import { generateToken, hashToken } from "../utils/crypto";
-import { tokenExpiryIso, isoNow } from "../utils/dates";
+import { tokenExpiryIso, isoNow, deadlineToExpiryIso } from "../utils/dates";
 
 export type NewQuestionInput = {
   position: number;
@@ -182,6 +182,45 @@ export async function approveQuestionnaire(
     .get();
 }
 
+/**
+ * Edit the questionnaire deadline and REOPEN outstanding survey links: every
+ * assignment that hasn't been submitted has its `expiresAt` bumped to the new
+ * deadline (end of day) — or the default token lifetime if the deadline is
+ * cleared — so the employee's existing link works again. Submitted assignments
+ * are left as-is. Used when a latecomer needs to still respond.
+ */
+export async function updateQuestionnaireDeadline(
+  managerId: string,
+  questionnaireId: string,
+  deadline: string | null,
+): Promise<{ questionnaire: Questionnaire; reopened: number }> {
+  const q = await getQuestionnaire(questionnaireId);
+  assertOwnsQuestionnaire(managerId, q);
+
+  const questionnaire = await db
+    .update(questionnaires)
+    .set({ deadline: deadline ?? null })
+    .where(eq(questionnaires.id, questionnaireId))
+    .returning()
+    .get();
+
+  const newExpiry = deadlineToExpiryIso(deadline) ?? tokenExpiryIso();
+  const assignments = await getAssignmentsForQuestionnaire(questionnaireId);
+  let reopened = 0;
+  for (const a of assignments) {
+    if (a.status === "submitted") continue;
+    // Reset a previously expired/revoked link so it is usable again.
+    const status = a.status === "expired" || a.status === "revoked" ? "pending" : a.status;
+    await db
+      .update(surveyAssignments)
+      .set({ expiresAt: newExpiry, status })
+      .where(eq(surveyAssignments.id, a.id))
+      .run();
+    reopened++;
+  }
+  return { questionnaire, reopened };
+}
+
 export type GeneratedLink = {
   assignmentId: string;
   respondentId: string;
@@ -214,12 +253,11 @@ export async function createSurveyAssignments(
     }),
   );
 
-  // If the questionnaire has a deadline in the future, links expire then;
-  // otherwise fall back to the default token lifetime.
-  const deadlineIso =
-    q.deadline && new Date(q.deadline).getTime() > Date.now()
-      ? new Date(q.deadline).toISOString()
-      : null;
+  // If the questionnaire has a deadline in the future, links expire at the END of
+  // that day; otherwise fall back to the default token lifetime.
+  const deadlineIso = deadlineToExpiryIso(q.deadline);
+  const futureDeadline =
+    deadlineIso && new Date(deadlineIso).getTime() > Date.now() ? deadlineIso : null;
 
   const links: GeneratedLink[] = [];
   for (const respondent of respondents) {
@@ -230,7 +268,7 @@ export async function createSurveyAssignments(
         questionnaireId,
         respondentId: respondent.id,
         tokenHash: hashToken(token),
-        expiresAt: deadlineIso ?? tokenExpiryIso(),
+        expiresAt: futureDeadline ?? tokenExpiryIso(),
         status: "pending",
       })
       .returning()

@@ -11,6 +11,19 @@ export function tokenExpiryIso(from: Date = new Date()): string {
   return addHours(Number.isFinite(hours) ? hours : 168, from).toISOString();
 }
 
+/**
+ * Turn a date-only deadline (e.g. "2026-07-03") into an expiry at the END of that
+ * day (23:59:59.999 UTC), so a respondent can still submit ON the deadline day.
+ * Returns null for an empty/invalid input.
+ */
+export function deadlineToExpiryIso(deadline: string | null | undefined): string | null {
+  if (!deadline) return null;
+  const d = new Date(deadline);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setUTCHours(23, 59, 59, 999);
+  return d.toISOString();
+}
+
 /** Current period label, e.g. "2026-Q2". */
 export function currentPeriod(from: Date = new Date()): string {
   const year = from.getUTCFullYear();

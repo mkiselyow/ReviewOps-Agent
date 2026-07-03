@@ -9,6 +9,7 @@ export type AuditAction =
   | "questionnaire_approved"
   | "assignments_created"
   | "reminders_sent"
+  | "deadline_updated"
   | "response_submitted"
   | "evidence_validated"
   | "evidence_submitted"
