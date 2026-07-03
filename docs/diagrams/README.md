@@ -12,6 +12,14 @@ boundary.
 
 ![System architecture](architecture.svg)
 
+### Detailed view
+Same thesis at the depth of the Mermaid source — every tier's inner nodes
+(route handlers → auth/RBAC → services → privacy filter → DB; REST → workflow
+graphs → security node → Gemini; SkillToolset + OpenTelemetry → Cloud Trace) and
+the labelled edges, including the security-boundary crossing.
+
+![System architecture — detailed](architecture-detailed.svg)
+
 ## The three ADK 2.0 agent workflows
 Questionnaire (plan → verdict-only safety → deterministic expand), Evidence
 (PII node → validator → confidence-gated routing), Review (privacy → draft →

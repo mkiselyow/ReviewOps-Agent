@@ -277,7 +277,7 @@ sequenceDiagram
   AS->>G: review_draft_agent → fairness_grounding_agent
   G-->>AS: grounded draft + fairness report
   AS-->>RS: structured result
-  RS->>RS: save draft (status=draft); audit
+  RS->>RS: save draft (status=draft) + audit
   RS-->>M: draft + fairness warnings (manager approves/edits/exports)
 ```
 

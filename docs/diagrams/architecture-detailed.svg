@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 720" role="img" aria-labelledby="t d" font-family="'Segoe UI',system-ui,-apple-system,sans-serif">
+  <title id="t">ReviewOps Agent — detailed system architecture</title>
+  <desc id="d">Browser to a Next.js server (route handlers, Auth/RBAC/permissions, services, privacy filter, dual-driver Drizzle DB) which enforces access control and PII minimization before a REST call to a stateless Python ADK 2.0 agent on Cloud Run (workflow graphs, pre-LLM security node, Gemini via Vertex, SkillToolset, OpenTelemetry to Cloud Trace).</desc>
+  <defs>
+    <marker id="ar" markerWidth="10" markerHeight="8" refX="8" refY="3" orient="auto"><path d="M0 0 L8 3 L0 6 Z" fill="#8aa0c4"/></marker>
+    <marker id="am" markerWidth="10" markerHeight="8" refX="8" refY="3" orient="auto"><path d="M0 0 L8 3 L0 6 Z" fill="#e6b23f"/></marker>
+    <style>
+      .t{fill:#f2f6fc;font-weight:800;font-size:26px}
+      .sub{fill:#9fb0cc;font-size:14px}
+      .hdr{font-weight:700;font-size:15px}
+      .lab{fill:#e7eef9;font-weight:600;font-size:13px}
+      .sm{fill:#9fb0cc;font-size:10.5px}
+      .al{fill:#8aa0c4;font-size:11px}
+      .aml{fill:#e6b23f;font-size:11px}
+      .box{fill:#16223c;stroke:#33456a;stroke-width:1.4}
+    </style>
+  </defs>
+  <rect width="1240" height="720" fill="#0b1220"/>
+  <text x="40" y="48" class="t">ReviewOps Agent — architecture (detailed)</text>
+  <text x="40" y="76" class="sub">Access control, consent and PII minimization run in the TypeScript app <tspan fill="#e6b23f" font-weight="700">before</tspan> the agent is ever called. The LLM is never the authorization boundary.</text>
+
+  <!-- Browser -->
+  <rect x="40" y="300" width="170" height="96" rx="12" class="box"/>
+  <text x="125" y="332" text-anchor="middle" class="lab" font-size="15">Browser</text>
+  <text x="125" y="356" text-anchor="middle" class="sm">manager · employee</text>
+  <text x="125" y="376" text-anchor="middle" class="sm">mock SSO · token links</text>
+
+  <!-- ============ Next.js server (security boundary) ============ -->
+  <rect x="255" y="108" width="350" height="500" rx="16" fill="#0f1a30" stroke="#e6b23f" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="430" y="136" text-anchor="middle" class="hdr" fill="#f6d488">Next.js server (TypeScript)</text>
+  <text x="430" y="156" text-anchor="middle" font-size="11" fill="#e0b45f">🔒 security boundary — before any model call</text>
+  <rect x="277" y="176" width="306" height="44" rx="9" class="box"/><text x="430" y="203" text-anchor="middle" class="lab">Route handlers · /api/*</text>
+  <rect x="277" y="234" width="306" height="52" rx="9" class="box"/><text x="430" y="256" text-anchor="middle" class="lab">Auth · RBAC · permissions</text><text x="430" y="273" text-anchor="middle" class="sm">canManagerViewEmployee · consent gate</text>
+  <rect x="277" y="300" width="306" height="60" rx="9" class="box"/><text x="430" y="323" text-anchor="middle" class="lab">Services</text><text x="430" y="341" text-anchor="middle" class="sm">hris · survey · evidence · review · outbox · audit</text>
+  <rect x="277" y="374" width="306" height="52" rx="9" class="box"/><text x="430" y="396" text-anchor="middle" class="lab">Privacy filter (deterministic)</text><text x="430" y="413" text-anchor="middle" class="sm">PII redaction · data minimization</text>
+  <rect x="277" y="442" width="306" height="56" rx="9" fill="#12233d" stroke="#34d399" stroke-width="1.6"/><text x="430" y="465" text-anchor="middle" class="lab" fill="#c9f5e4">Drizzle ORM · dual-driver DB</text><text x="430" y="482" text-anchor="middle" class="sm">SQLite (local) / Turso libSQL (prod)</text>
+  <!-- next vertical chain -->
+  <line x1="430" y1="220" x2="430" y2="232" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <line x1="430" y1="286" x2="430" y2="298" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <line x1="430" y1="360" x2="430" y2="372" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <!-- services -> DB (left elbow, bypasses privacy box) -->
+  <path d="M277 330 L263 330 L263 470 L275 470" fill="none" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <text x="243" y="404" text-anchor="middle" class="al" transform="rotate(-90 243 404)">persist</text>
+
+  <!-- ============ Python ADK agent service ============ -->
+  <rect x="655" y="108" width="545" height="500" rx="16" fill="#0f1a30" stroke="#5b9bff" stroke-width="2"/>
+  <text x="830" y="136" text-anchor="middle" class="hdr" fill="#bcd3ff">Python ADK 2.0 agent service · Cloud Run</text>
+  <text x="830" y="156" text-anchor="middle" font-size="11" fill="#8fb0e6">Vertex mode (no key in image) · X-Agent-Key · rate-limited</text>
+  <!-- main chain -->
+  <rect x="675" y="176" width="300" height="44" rx="9" class="box"/><text x="825" y="203" text-anchor="middle" class="lab">REST · /questionnaire /evidence /review</text>
+  <rect x="675" y="234" width="300" height="52" rx="9" fill="#16223c" stroke="#5b9bff" stroke-width="1.5"/><text x="825" y="256" text-anchor="middle" class="lab">ADK Workflow graphs</text><text x="825" y="273" text-anchor="middle" class="sm">nodes + edges + confidence routing</text>
+  <rect x="675" y="300" width="300" height="52" rx="9" class="box"/><text x="825" y="322" text-anchor="middle" class="lab">Pre-LLM security node</text><text x="825" y="339" text-anchor="middle" class="sm">PII + prompt-injection screening</text>
+  <rect x="675" y="366" width="300" height="50" rx="9" fill="#1a1730" stroke="#b98bff" stroke-width="1.6"/><text x="825" y="396" text-anchor="middle" class="lab" fill="#e6d9ff">Gemini 2.5 Flash · Vertex AI</text>
+  <line x1="825" y1="220" x2="825" y2="232" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <line x1="825" y1="286" x2="825" y2="298" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <line x1="825" y1="352" x2="825" y2="364" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <!-- telemetry column -->
+  <rect x="1005" y="234" width="175" height="46" rx="9" class="box"/><text x="1092" y="262" text-anchor="middle" class="lab">SkillToolset · skills/</text>
+  <rect x="1005" y="298" width="175" height="46" rx="9" class="box"/><text x="1092" y="326" text-anchor="middle" class="lab">OpenTelemetry</text>
+  <rect x="1005" y="362" width="175" height="52" rx="9" class="box"/><text x="1092" y="384" text-anchor="middle" class="lab">Cloud Trace</text><text x="1092" y="401" text-anchor="middle" class="sm">session · think · tool</text>
+  <line x1="975" y1="252" x2="1003" y2="256" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <path d="M975 268 L992 320 L1003 320" fill="none" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <line x1="1092" y1="344" x2="1092" y2="360" stroke="#8aa0c4" stroke-dasharray="3 3" marker-end="url(#ar)"/>
+
+  <!-- Browser <-> Next -->
+  <path d="M210 320 L245 260 L275 205" fill="none" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <text x="232" y="262" class="al">HTTPS</text>
+  <path d="M277 322 L235 322 L235 356 L212 356" fill="none" stroke="#8aa0c4" stroke-dasharray="3 3" marker-end="url(#ar)"/>
+  <text x="243" y="340" class="al">render</text>
+
+  <!-- Privacy -> REST : the security-boundary crossing -->
+  <path d="M583 398 L640 300 L673 205" fill="none" stroke="#e6b23f" stroke-width="2.2" marker-end="url(#am)"/>
+  <text x="648" y="290" class="aml" font-weight="700">REST call</text>
+  <text x="648" y="305" class="aml">authorized · PII-safe context</text>
+  <!-- REST -> Services : structured result -->
+  <path d="M673 220 L620 300 L585 330" fill="none" stroke="#8aa0c4" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <text x="600" y="356" class="al">structured result</text>
+
+  <!-- footer legend -->
+  <rect x="40" y="640" width="1160" height="52" rx="12" fill="#0f1a30" stroke="#23324e"/>
+  <text x="60" y="662" class="lab" font-size="12">Legend</text>
+  <rect x="120" y="652" width="14" height="14" rx="3" fill="#0f1a30" stroke="#e6b23f" stroke-dasharray="3 2"/><text x="142" y="663" class="sm">security boundary (TS app)</text>
+  <rect x="320" y="652" width="14" height="14" rx="3" fill="#16223c" stroke="#5b9bff"/><text x="342" y="663" class="sm">LLM agent</text>
+  <rect x="450" y="652" width="14" height="14" rx="3" fill="#1a1730" stroke="#b98bff"/><text x="472" y="663" class="sm">model</text>
+  <rect x="545" y="652" width="14" height="14" rx="3" fill="#12233d" stroke="#34d399"/><text x="567" y="663" class="sm">data / persistence</text>
+  <text x="720" y="663" class="sm">Human-in-the-loop approval before sending questionnaires, generating drafts, approving, and exporting · every sensitive action audited.</text>
+</svg>
