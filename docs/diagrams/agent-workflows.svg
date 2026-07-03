@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 540" role="img" aria-labelledby="t d" font-family="'Segoe UI',system-ui,-apple-system,sans-serif">
+  <title id="t">ReviewOps Agent — the three ADK 2.0 agent workflows</title>
+  <desc id="d">Questionnaire workflow (agent, capture, safety verdict, deterministic expand). Evidence workflow (security PII node, validator, confidence-gated finalize routing to auto-approve or manager review). Review workflow (privacy node, draft agent, deterministic fairness/grounding node).</desc>
+  <defs>
+    <marker id="a" markerWidth="9" markerHeight="8" refX="7.5" refY="3" orient="auto"><path d="M0 0 L7.5 3 L0 6 Z" fill="#8aa0c4"/></marker>
+    <style>
+      .t{fill:#f2f6fc;font-weight:800;font-size:25px}
+      .sub{fill:#9fb0cc;font-size:14px}
+      .lane{fill:#e7eef9;font-weight:700;font-size:14px}
+      .node{stroke-width:1.5}
+      .nl{fill:#e7eef9;font-weight:600;font-size:12.5px}
+      .sm{fill:#9fb0cc;font-size:10.5px}
+      .st{fill:#0f1a30;stroke:#3a4a66;stroke-width:1.5}
+    </style>
+  </defs>
+  <rect width="1120" height="540" fill="#0b1220"/>
+  <text x="40" y="46" class="t">Three ADK 2.0 graph Workflows</text>
+  <text x="40" y="72" class="sub">Agents (LLM) chained with deterministic <tspan fill="#c3d1ea">@node</tspan> functions — “write software, not rules”. Structured Pydantic I/O throughout.</text>
+
+  <!-- ================= Lane 1: Questionnaire ================= -->
+  <text x="40" y="132" class="lane" fill="#8fb6ff">Questionnaire</text>
+  <text x="40" y="150" class="sm">generate → safety</text>
+  <circle cx="185" cy="150" r="15" class="st"/><text x="185" y="154" text-anchor="middle" class="sm">▶</text>
+  <rect x="222" y="128" width="150" height="46" rx="9" fill="#16223c" stroke="#5b9bff" class="node"/>
+  <text x="297" y="147" text-anchor="middle" class="nl">questionnaire_agent</text><text x="297" y="163" text-anchor="middle" class="sm">compact plan</text>
+  <rect x="400" y="128" width="120" height="46" rx="9" fill="#16223c" stroke="#5b9bff" class="node"/>
+  <text x="460" y="147" text-anchor="middle" class="nl">safety_agent</text><text x="460" y="163" text-anchor="middle" class="sm">verdict only</text>
+  <rect x="548" y="128" width="120" height="46" rx="9" class="st"/>
+  <text x="608" y="147" text-anchor="middle" class="nl">expand_node</text><text x="608" y="163" text-anchor="middle" class="sm">plan → questions</text>
+  <rect x="696" y="128" width="170" height="46" rx="9" fill="#12233d" stroke="#34d399" class="node"/>
+  <text x="781" y="152" text-anchor="middle" class="nl">QuestionnaireWithSafety</text>
+  <line x1="200" y1="151" x2="220" y2="151" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <line x1="372" y1="151" x2="398" y2="151" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <line x1="520" y1="151" x2="546" y2="151" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <line x1="668" y1="151" x2="694" y2="151" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <text x="895" y="147" class="sm">400+ items → chunked</text><text x="895" y="161" class="sm">in parallel, then merged</text>
+
+  <!-- ================= Lane 2: Evidence ================= -->
+  <text x="40" y="272" class="lane" fill="#7ee0b8">Evidence</text>
+  <text x="40" y="290" class="sm">confidence-gated</text>
+  <circle cx="185" cy="290" r="15" class="st"/><text x="185" y="294" text-anchor="middle" class="sm">▶</text>
+  <rect x="222" y="268" width="130" height="46" rx="9" class="st"/>
+  <text x="287" y="287" text-anchor="middle" class="nl">security_node</text><text x="287" y="303" text-anchor="middle" class="sm">PII redaction</text>
+  <rect x="380" y="268" width="140" height="46" rx="9" fill="#12233d" stroke="#34d399" class="node"/>
+  <text x="450" y="287" text-anchor="middle" class="nl">evidence_validator</text><text x="450" y="303" text-anchor="middle" class="sm">score + map</text>
+  <rect x="548" y="268" width="140" height="46" rx="9" class="st"/>
+  <text x="618" y="287" text-anchor="middle" class="nl">finalize_node</text><text x="618" y="303" text-anchor="middle" class="sm">confidence ≥ 0.7 ?</text>
+  <rect x="720" y="244" width="160" height="42" rx="9" fill="#12233d" stroke="#34d399" class="node"/>
+  <text x="800" y="270" text-anchor="middle" class="nl">auto_approved</text>
+  <rect x="720" y="296" width="160" height="42" rx="9" fill="#2a2412" stroke="#f4b740" class="node"/>
+  <text x="800" y="322" text-anchor="middle" class="nl">pending_review</text>
+  <line x1="200" y1="291" x2="220" y2="291" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <line x1="352" y1="291" x2="378" y2="291" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <line x1="520" y1="291" x2="546" y2="291" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <path d="M688 285 L705 265 L718 265" fill="none" stroke="#34d399" marker-end="url(#a)"/><text x="700" y="258" class="sm" fill="#7ee0b8">yes</text>
+  <path d="M688 297 L705 317 L718 317" fill="none" stroke="#f4b740" marker-end="url(#a)"/><text x="700" y="332" class="sm" fill="#f4b740">no</text>
+  <text x="905" y="278" class="sm">high confidence stores;</text><text x="905" y="292" class="sm">low → manager queue.</text>
+
+  <!-- ================= Lane 3: Review ================= -->
+  <text x="40" y="412" class="lane" fill="#cbb0ff">Review</text>
+  <text x="40" y="430" class="sm">grounded + fair</text>
+  <circle cx="185" cy="430" r="15" class="st"/><text x="185" y="434" text-anchor="middle" class="sm">▶</text>
+  <rect x="222" y="408" width="130" height="46" rx="9" class="st"/>
+  <text x="287" y="427" text-anchor="middle" class="nl">privacy_node</text><text x="287" y="443" text-anchor="middle" class="sm">redact + minimize</text>
+  <rect x="380" y="408" width="150" height="46" rx="9" fill="#1a1730" stroke="#b98bff" class="node"/>
+  <text x="455" y="427" text-anchor="middle" class="nl">review_draft_agent</text><text x="455" y="443" text-anchor="middle" class="sm">cite evidence ids</text>
+  <rect x="558" y="408" width="130" height="46" rx="9" class="st"/>
+  <text x="623" y="427" text-anchor="middle" class="nl">fairness_node</text><text x="623" y="443" text-anchor="middle" class="sm">grounding check</text>
+  <rect x="716" y="408" width="180" height="46" rx="9" fill="#12233d" stroke="#34d399" class="node"/>
+  <text x="806" y="427" text-anchor="middle" class="nl">grounded review draft</text><text x="806" y="443" text-anchor="middle" class="sm">+ fairness warnings</text>
+  <line x1="200" y1="431" x2="220" y2="431" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <line x1="352" y1="431" x2="378" y2="431" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <line x1="530" y1="431" x2="556" y2="431" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <line x1="688" y1="431" x2="714" y2="431" stroke="#8aa0c4" marker-end="url(#a)"/>
+
+  <text x="40" y="512" class="sm">Blue = LLM agent · slate = deterministic node · green = terminal output · amber = human-review branch.  Every review claim cites an evidence id; no fabrication; calibrated to the role matrix.</text>
+</svg>

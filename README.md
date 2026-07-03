@@ -41,6 +41,11 @@ privacy filtering, and human-in-the-loop approval:
 
 ## Agent architecture (hybrid)
 
+![ReviewOps Agent — system architecture](docs/diagrams/architecture.svg)
+
+> More diagrams (agent workflows, deploy topology): **[docs/diagrams/](docs/diagrams/)** ·
+> Mermaid source in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+
 ```
 Next.js app (TypeScript)                Python ADK 2.0 agent service (FastAPI)
   UI / Route handlers                     graph Workflows:

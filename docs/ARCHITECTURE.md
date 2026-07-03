@@ -20,6 +20,9 @@ The design deliberately applies two Google 2026 whitepapers:
 
 ## 1. System architecture
 
+> 📊 Presentation-ready versions of these diagrams (for the writeup/slides) live in
+> **[docs/diagrams/](diagrams/)**.
+
 ```mermaid
 flowchart TB
   subgraph Client["Browser"]
@@ -51,6 +54,13 @@ flowchart TB
   REST -- "structured result" --> SVC --> DB
   SVC --> UI
   OTEL -. "Cloud Trace / spans" .-> Obs[("Observability<br/>agent.session / think / tool")]
+
+  classDef sec fill:#fff6e0,stroke:#e0a83a,color:#5c4410;
+  classDef agent fill:#e9f1ff,stroke:#3b6fd6,color:#183a72;
+  classDef data fill:#e7f7ef,stroke:#1a9c6e,color:#0c5138;
+  class AUTH,PRIV sec;
+  class REST,WF,SEC,GEM,SKILL agent;
+  class DB,Obs data;
 ```
 
 **Boundary rule (unchanged from the original design):** access control and
