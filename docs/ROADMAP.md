@@ -71,7 +71,9 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
 ### B. Ambient (event-driven)
 - ✅ **In-app deadlines & nudges** — questionnaire `deadline`, overdue detection,
   per-questionnaire completion on the manager dashboard, and "Send reminders"
-  writing nudge rows to the outbox (`remindersService`).
+  writing nudge rows to the outbox (`remindersService`). The deadline is
+  **editable/extendable** — extending **reopens outstanding survey links**
+  (end-of-day expiry) so latecomers can still respond.
 - ⬜ Make it truly event-driven: **Cloud Scheduler → `/api/cron/reminders`** (or
   Pub/Sub) to auto-nudge without a manual click; auto-close questionnaires past
   deadline; review-season reminders.

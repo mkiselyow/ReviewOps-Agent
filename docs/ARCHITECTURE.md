@@ -228,6 +228,12 @@ completion (submitted/total) and flags **overdue** ones; **"Send reminders"**
 is the seam a real Slack/email delivery or a **Cloud Scheduler → `/api/cron/reminders`**
 job would drive for fully event-driven nudges.
 
+The manager can also **edit/extend the deadline** (`updateQuestionnaireDeadline`),
+which **reopens the still-outstanding survey links** — it bumps each non-submitted
+assignment's `expires_at` to the new deadline (**end of day**, so a respondent can
+submit *on* the deadline day) — so a latecomer's existing link works again; a
+follow-up "Send reminders" reuses the same link. Submitted assignments are untouched.
+
 ### 2.2 Evidence submission (confirm-before-store + improve-loop)
 
 On standalone evidence submit, the validator scores it and:
