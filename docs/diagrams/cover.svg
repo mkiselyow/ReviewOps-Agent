@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="t d" font-family="'Segoe UI',system-ui,-apple-system,sans-serif">
+  <title id="t">ReviewOps Agent — cover</title>
+  <desc id="d">Title card. ReviewOps Agent: a permission-aware, evidence-grounded review assistant for engineering managers. Kaggle AI Agents capstone, track Agents for Business. The thesis ribbon shows access control running in the TypeScript app before the Python ADK 2.0 agent and Gemini. Built with Google ADK 2.0, Gemini, Cloud Run, Vercel and Turso.</desc>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="8" refX="8" refY="3" orient="auto"><path d="M0 0 L8 3 L0 6 Z" fill="#8aa0c4"/></marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#0d1730"/>
+    </linearGradient>
+    <style>
+      .kick{fill:#f4b740;font-weight:700;font-size:16px;letter-spacing:2.5px}
+      .h1{fill:#f2f6fc;font-weight:800;font-size:72px}
+      .tag{fill:#c3d1ea;font-size:23px}
+      .box{fill:#16223c;stroke:#2c3e60;stroke-width:1.5}
+      .nl{fill:#e7eef9;font-weight:700;font-size:16px}
+      .sm{fill:#9fb0cc;font-size:12px}
+      .albl{fill:#8aa0c4;font-size:12px}
+      .chip{fill:#0f1a30;stroke:#2c3e60;stroke-width:1}
+      .chipt{fill:#c3d1ea;font-size:13px;font-weight:600}
+      .foot{fill:#7f90ad;font-size:13px}
+    </style>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1200" height="6" fill="#f4b740"/>
+
+  <!-- Title block -->
+  <text x="72" y="112" class="kick">KAGGLE · AI AGENTS INTENSIVE — AGENTS FOR BUSINESS</text>
+  <text x="70" y="188" class="h1">ReviewOps Agent</text>
+  <text x="72" y="232" class="tag">Permission-aware, evidence-grounded performance reviews.</text>
+
+  <!-- Thesis ribbon: access control BEFORE the model -->
+  <text x="72" y="300" class="kick" fill="#8fb0e6" letter-spacing="1.5">THE ONE IDEA</text>
+
+  <!-- Browser -->
+  <rect x="72" y="322" width="150" height="86" rx="12" class="box"/>
+  <text x="147" y="356" text-anchor="middle" class="nl">Browser</text>
+  <text x="147" y="380" text-anchor="middle" class="sm">manager · employee</text>
+
+  <line x1="222" y1="365" x2="266" y2="365" stroke="#8aa0c4" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <!-- TS security boundary -->
+  <rect x="270" y="312" width="272" height="106" rx="14" fill="#0f1a30" stroke="#f4b740" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="406" y="342" text-anchor="middle" class="nl" fill="#f6d488">Next.js · TypeScript</text>
+  <text x="406" y="366" text-anchor="middle" class="sm">🔒 Auth · RBAC · PII redaction</text>
+  <text x="406" y="392" text-anchor="middle" class="sm">consent gate · audit</text>
+
+  <line x1="542" y1="365" x2="586" y2="365" stroke="#f4b740" stroke-width="2.2" marker-end="url(#arr)"/>
+  <text x="564" y="356" text-anchor="middle" class="albl" fill="#e6b23f">then</text>
+
+  <!-- Agent -->
+  <rect x="590" y="312" width="240" height="106" rx="14" fill="#0f1a30" stroke="#5b9bff" stroke-width="2"/>
+  <text x="710" y="342" text-anchor="middle" class="nl" fill="#bcd3ff">Python ADK 2.0</text>
+  <text x="710" y="366" text-anchor="middle" class="sm">3 graph Workflows · Cloud Run</text>
+  <text x="710" y="392" text-anchor="middle" class="sm">tools · state · telemetry</text>
+
+  <line x1="830" y1="365" x2="874" y2="365" stroke="#8aa0c4" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <!-- Model -->
+  <rect x="878" y="322" width="188" height="86" rx="12" fill="#1a1730" stroke="#b98bff" stroke-width="1.8"/>
+  <text x="972" y="356" text-anchor="middle" class="nl" fill="#e6d9ff">Gemini 2.5</text>
+  <text x="972" y="380" text-anchor="middle" class="sm">Vertex AI</text>
+
+  <text x="72" y="452" class="albl" fill="#8f9fbb">The LLM is never the authorization boundary — access control, consent and data minimization run in code, before the REST call.</text>
+
+  <!-- Capability chips -->
+  <g>
+    <rect x="72" y="490" width="184" height="34" rx="17" class="chip"/><text x="164" y="512" text-anchor="middle" class="chipt">Multi-agent orchestration</text>
+    <rect x="266" y="490" width="150" height="34" rx="17" class="chip"/><text x="341" y="512" text-anchor="middle" class="chipt">RBAC + consent</text>
+    <rect x="426" y="490" width="196" height="34" rx="17" class="chip"/><text x="524" y="512" text-anchor="middle" class="chipt">Confidence-gated routing</text>
+    <rect x="632" y="490" width="184" height="34" rx="17" class="chip"/><text x="724" y="512" text-anchor="middle" class="chipt">Human-in-the-loop</text>
+    <rect x="826" y="490" width="176" height="34" rx="17" class="chip"/><text x="914" y="512" text-anchor="middle" class="chipt">Grounding + fairness</text>
+  </g>
+
+  <!-- Footer / stack -->
+  <line x1="72" y1="560" x2="1128" y2="560" stroke="#1c2b47" stroke-width="1"/>
+  <text x="72" y="592" class="foot">Google ADK 2.0 · Gemini · Cloud Run · Vertex AI &#160;&#160;|&#160;&#160; Next.js 16 · React 19 · Drizzle · Turso · Vercel</text>
+  <text x="1128" y="592" text-anchor="end" class="foot" fill="#8fb6ff">reviewops-agent.vercel.app</text>
+</svg>

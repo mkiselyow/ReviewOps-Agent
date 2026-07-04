@@ -5,6 +5,12 @@ the Kaggle writeup, and video slides. They render on GitHub and export cleanly t
 PNG. The maintainable, source-of-truth Mermaid versions live in
 [../ARCHITECTURE.md](../ARCHITECTURE.md).
 
+## Cover image (Kaggle writeup)
+1200×630 title card — the pitch in one frame. A raster `cover.png` (2400×1260,
+2×) is exported alongside for platforms that want a bitmap.
+
+![Cover](cover.svg)
+
 ## System architecture
 The one-slide thesis: **access control, consent and PII minimization run in the
 TypeScript app _before_ any model call** — the LLM is never the authorization
