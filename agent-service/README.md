@@ -1,92 +1,88 @@
 # agent-service
 
-Simple ReAct agent
-Agent generated with `agents-cli` version `0.6.0`
+The Python half of ReviewOps Agent: a FastAPI service hosting **three ADK 2.0
+graph `Workflow`s** (Gemini) behind a small REST surface. The TypeScript app
+enforces access control, consent, and PII minimization *before* calling this
+service — see [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) for the full
+security model and workflow diagrams.
 
-## Project Structure
+Scaffolded with `agents-cli` 0.6.0, then rebuilt around structured workflows.
+
+## The three workflows
+
+| Workflow | File | Graph |
+|----------|------|-------|
+| **Questionnaire** | `app/agent.py` | `questionnaire_agent → capture → safety_agent → deterministic expand` — generates a compact plan, reviews items for sensitive/leading topics, then expands to the full questionnaire without a second LLM pass |
+| **Evidence** | `app/evidence.py` | `security_node (PII + injection screen) → evidence_validator → confidence-gated finalize` — scores evidence quality, routes low-confidence items to human review |
+| **Review** | `app/review.py` | `privacy_node → review_draft_agent (SkillToolset) → deterministic fairness check` — drafts a review grounded only in approved evidence, every claim cited |
+
+The review agent loads the **`drafting-performance-reviews` skill**
+(`skills/drafting-performance-reviews/` — `SKILL.md`, grounding rules, and 3
+eval cases) via ADK `SkillToolset`.
+
+## Project structure
 
 ```
 agent-service/
-├── app/         # Core agent code
-│   ├── agent.py               # Main agent logic
-│   ├── fast_api_app.py        # FastAPI Backend server
-│   └── app_utils/             # App utilities and helpers
-├── tests/                     # Unit, integration, and load tests
-├── GEMINI.md                  # AI-assisted development guide
-└── pyproject.toml             # Project dependencies
+├── app/
+│   ├── agent.py         # Questionnaire workflow
+│   ├── evidence.py      # Evidence validation workflow
+│   ├── review.py        # Review drafting workflow (+ SkillToolset)
+│   ├── schemas.py       # Pydantic I/O schemas for all workflows
+│   ├── security.py      # Pre-LLM PII redaction + prompt-injection screening
+│   ├── local_server.py  # Local/Cloud Run FastAPI entry point
+│   ├── fast_api_app.py  # Agent Runtime entry point (telemetry wiring)
+│   └── app_utils/       # A2A, telemetry, service helpers
+├── skills/
+│   └── drafting-performance-reviews/   # SKILL.md + references + evals
+├── tests/
+│   ├── integration/     # Agent stream tests
+│   └── eval/            # Golden datasets + eval_config.yaml (LLM-as-judge)
+├── Dockerfile           # Cloud Run image
+└── pyproject.toml
 ```
-
-> 💡 **Tip:** Use [Gemini CLI](https://github.com/google-gemini/gemini-cli) for AI-assisted development - project context is pre-configured in `GEMINI.md`.
 
 ## Requirements
 
-Before you begin, ensure you have:
-- **uv**: Python package manager (used for all dependency management in this project) - [Install](https://docs.astral.sh/uv/getting-started/installation/) ([add packages](https://docs.astral.sh/uv/concepts/dependencies/) with `uv add <package>`)
-- **agents-cli**: Agents CLI - Install with `uv tool install google-agents-cli`
-- **Google Cloud SDK**: For GCP services - [Install](https://cloud.google.com/sdk/docs/install)
+- **uv** — Python package manager ([install](https://docs.astral.sh/uv/getting-started/installation/))
+- **agents-cli** — `uv tool install google-agents-cli`
+- A Gemini API key (`GOOGLE_API_KEY`) or Vertex AI credentials
 
-
-## Quick Start
-
-Install `agents-cli` and its skills if not already installed:
+## Run locally
 
 ```bash
-uvx google-agents-cli setup
+agents-cli install                                # install deps via uv
+uvicorn app.local_server:app --port 8800          # serve the workflows
 ```
 
-Install required packages:
+The Next.js app talks to this service at `AGENT_SERVICE_URL`
+(default `http://127.0.0.1:8800`). Requests are authenticated with the
+`X-Agent-Key` header (`AGENT_SHARED_SECRET`, shared with the frontend).
+
+Environment variables (see `.env`, gitignored):
+
+| Variable | Purpose |
+|----------|---------|
+| `GOOGLE_API_KEY` | Gemini key for local dev (prod uses Vertex mode via ADC — no key in the image) |
+| `GEMINI_MODEL` | Model id, default `gemini-2.5-flash` |
+| `AGENT_SHARED_SECRET` | Shared secret checked on every request |
+
+## Evaluate
 
 ```bash
-agents-cli install
+agents-cli eval generate --dataset tests/eval/datasets/reviewops-questionnaire.json --metrics questionnaire_quality
+BASE=http://127.0.0.1:8800 python tests/eval/structural_smoke.py   # needs a funded key
+uv run pytest tests/unit tests/integration
 ```
 
-Test the agent with a local web server:
+Three LLM-as-judge metrics (`tests/eval/eval_config.yaml`) score
+questionnaire, evidence, and review quality against golden datasets — results
+and the eval-driven fixes they produced are in
+[docs/EVAL_RESULTS.md](../docs/EVAL_RESULTS.md).
 
-```bash
-agents-cli playground
-```
+## Deploy
 
-You can also use features from the [ADK](https://adk.dev/) CLI with `uv run adk`.
-
-## Commands
-
-| Command              | Description                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| `agents-cli install` | Install dependencies using uv                                                         |
-| `agents-cli playground` | Launch local development environment                                                  |
-| `agents-cli lint`    | Run code quality checks                                                               |
-| `agents-cli eval`    | Evaluate agent behavior (generate, grade, analyze, and more — see `agents-cli eval --help`) |
-| `uv run pytest tests/unit tests/integration` | Run unit and integration tests                                                        || [A2A Inspector](https://github.com/a2aproject/a2a-inspector) | Launch A2A Protocol Inspector                                                        |
-
-## 🛠️ Project Management
-
-| Command | What It Does |
-|---------|--------------|
-| `agents-cli scaffold enhance` | Add CI/CD pipelines and Terraform infrastructure |
-| `agents-cli infra cicd` | One-command setup of entire CI/CD pipeline + infrastructure |
-| `agents-cli scaffold upgrade` | Auto-upgrade to latest version while preserving customizations |
-
----
-
-## Development
-
-Edit your agent logic in `app/agent.py` and test with `agents-cli playground` - it auto-reloads on save.
-
-## Deployment
-
-```bash
-gcloud config set project <your-project-id>
-agents-cli deploy
-```
-
-To add CI/CD and Terraform, run `agents-cli scaffold enhance`.
-To set up your production infrastructure, run `agents-cli infra cicd`.
-
-## Observability
-
-Built-in telemetry exports to Cloud Trace, BigQuery, and Cloud Logging.
-
-## A2A Inspector
-
-This agent supports the [A2A Protocol](https://a2a-protocol.org/). Use the [A2A Inspector](https://github.com/a2aproject/a2a-inspector) to test interoperability.
-See the [A2A Inspector docs](https://github.com/a2aproject/a2a-inspector) for details.
+Built as a container (see `Dockerfile`) and deployed to **Cloud Run** in
+Vertex mode — no API key baked into the image. Step-by-step reproduction in
+[docs/DEPLOY.md](../docs/DEPLOY.md). Telemetry exports to Cloud Trace via
+OpenTelemetry (`app/app_utils/telemetry.py`).

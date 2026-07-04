@@ -6,9 +6,14 @@
 
 ![ReviewOps Agent](diagrams/cover.svg)
 
-**Live demo:** https://reviewops-agent.vercel.app · **Code:** github.com/mkiselyow/ReviewOps-Agent
+**Live demo:** https://reviewops-agent.vercel.app · **Code:** github.com/mkiselyow/ReviewOps-Agent · **Video:** `<YOUTUBE-URL — insert before submitting>`
 
 *(All data is synthetic.)*
+
+> **Try it in 60 seconds:** open the live demo → log in as *Maria* (one click,
+> no signup) → generate a questionnaire from her topic prompt → grab Anna's
+> token link from the outbox and submit evidence as Anna → back as Maria,
+> generate the review draft and watch every claim cite an evidence id.
 
 ---
 
@@ -24,6 +29,15 @@ ReviewOps Agent gives employees a structured place to submit their own success
 evidence, validates that evidence, and grounds every review claim in
 employee-approved evidence — **without making any HR decision automatically, and
 without ever sending raw HR data to the model.**
+
+The business cost is concrete. A manager with six reports spends hours per
+review reconstructing a year from memory — days of management time every cycle,
+multiplied across the org. Reviews written that way skew toward whoever spoke
+up last quarter, which feeds attrition and calibration disputes; and every
+manager who "fixes" it by pasting 1:1 notes into a public chatbot creates a
+compliance incident. ReviewOps shifts collection to continuous, consented
+evidence capture and cuts drafting to minutes — removing both the time sink and
+the liability.
 
 ## The one idea
 
@@ -204,6 +218,16 @@ The Python agent service runs on **Cloud Run** (stateless, Vertex mode). The
 Next.js frontend runs on **Vercel**, backed by **Turso/libSQL** (the DB layer is
 dual-driver: better-sqlite3 locally, Turso in prod). Full reproduction in
 [`DEPLOY.md`](DEPLOY.md).
+
+## Capstone key concepts — where to find each
+
+| Course concept | Where | Evidence |
+|---|---|---|
+| Multi-agent system (ADK) | Code | Three ADK 2.0 graph `Workflow`s — `agent-service/app/agent.py`, `evidence.py`, `review.py` — each chaining LLM agents with deterministic nodes |
+| Agent skills / Agents CLI | Code | `drafting-performance-reviews` skill (`SKILL.md` + grounding rules + eval cases) loaded via `SkillToolset`; behavior graded with `agents-cli eval` |
+| Security features | Code | RBAC before the model, SHA-256 token hashing, HMAC-signed sessions, PII redaction + injection screening, rate limiting, audit log |
+| Deployability | Video + docs | Live on Vercel + Cloud Run + Turso; reproduction in [`DEPLOY.md`](DEPLOY.md); Playwright smoke against prod |
+| MCP boundary | Code | Vendor-neutral connector contracts (`src/server/connectors/`) built for a BambooHR/Lattice/MCP swap-in (mock in the MVP) |
 
 ## Limitations
 

@@ -165,7 +165,7 @@ questionnaire generation through **Vercel → Cloud Run → Gemini** to the prev
 It writes a draft to the target DB, so re-seed afterwards when run against the demo
 DB.
 
-**54 Vitest tests** cover the security stories (manager scope, token hashing,
+**67 Vitest tests** (13 files) cover the security stories (manager scope, token hashing,
 expiry, cross-assignment isolation), questionnaire schema validity,
 sensitive-question rejection, the weak-answer follow-up loop, the consent gate,
 review grounding (incl. connector signals), the dynamic-questionnaire

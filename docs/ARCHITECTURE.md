@@ -473,7 +473,7 @@ low-confidence evidence.
 
 ## 9. Testing & verification
 
-- **TS Vitest** (`tests/`, **50 tests**): permissions/scope; token hash stored
+- **TS Vitest** (`tests/`, **67 tests** in 13 files): permissions/scope; token hash stored
   (not raw); expired token denied; cross-assignment isolation; questionnaire
   schema valid; sensitive question rejected; vague answer → follow-up; review
   cites evidence; unsupported claim flagged; consent gate; **normalizer
