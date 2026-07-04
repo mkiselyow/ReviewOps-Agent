@@ -1,217 +1,165 @@
-# ReviewOps Agent — Demo Script
+# ReviewOps Agent — Demo Script (Kaggle video)
 
 ## Goal
 
-Record a short Kaggle capstone demo showing that ReviewOps Agent is not a generic chat app. It is a permission-aware, evidence-grounded, human-approved workflow agent for engineering managers.
+Record the Kaggle capstone demo showing that ReviewOps Agent is not a generic
+chat app: it is a permission-aware, evidence-grounded, human-approved workflow
+agent for engineering managers.
 
-Target video length: 3–6 minutes.
+**Video length: hard cap 5:00 (Kaggle limit). Target 4:30.** Practice each
+scene against the time budget below; cut the optional beats first if over.
 
-## Demo Setup
+Rubric bullets this script covers: problem statement → why agents →
+architecture (images) → demo → the build.
 
-This is a **hybrid** app: the Next.js frontend + the Python ADK 2.0 agent
-service must both be running (the agent service needs a Gemini API key — no
-offline mock).
+## Setup
 
-```bash
-# 1) Agent service (Python ADK 2.0)
-cd agent-service
-# put GOOGLE_API_KEY in agent-service/.env
-agents-cli install
-agents-cli playground          # or: agents-cli run "<prompt>"
+**Record against the live deployment** — https://reviewops-agent.vercel.app —
+it is simpler than the local stack and visibly proves deployability
+(Vercel → Cloud Run → Gemini → Turso).
 
-# 2) Frontend (TypeScript Next.js), in a second terminal
-cd ..
-npm install
-cp .env.example .env            # set AGENT_SERVICE_URL to the service
-npm run db:push
-npm run seed
-npm run dev
-```
+Before recording:
 
-Open the app locally; the frontend calls the agent service over REST.
+1. Re-seed the demo DB so state is clean (see [DEPLOY.md](DEPLOY.md) — e2e and
+   earlier takes write drafts).
+2. Have these images ready to show full-screen:
+   `diagrams/cover.png`, `diagrams/architecture.svg`,
+   `diagrams/agent-workflows.svg`, `diagrams/deploy-topology.svg`.
+3. Optional (build scene): Antigravity IDE open on the repo with your real
+   task history visible.
 
-## Demo Narrative
+(Local-stack instructions live in [LOCAL_DEV.md](LOCAL_DEV.md) if you prefer
+recording locally.)
 
-Say:
+## Scene 0 — The problem & why agents (0:30)
 
-> ReviewOps Agent helps engineering managers collect employee-approved success evidence throughout the year and generate grounded review drafts. The demo uses synthetic HRIS data and mock integrations for privacy and reproducibility.
+Narrate over `cover.png`:
 
-## Scene 1 — Login and Manager Scope
+> Engineering managers write performance reviews from memory: early-year work
+> is forgotten, recent events dominate, feedback turns vague — and more and
+> more, sensitive HR notes get pasted straight into a public chatbot.
+> ReviewOps Agent fixes the workflow, not just the writing: employees submit
+> evidence all year, agents validate and structure it, and review drafts are
+> grounded in evidence the employee approved. Agents fit because this is a
+> multi-step judgment task — generate, validate, follow up, check fairness —
+> not a single completion.
 
-1. Open the app.
-2. Select mock login: `Maria — Engineering Manager`.
-3. Show manager dashboard.
-4. Point out direct reports:
-   - Anna
-   - Mark
-   - Julia
-5. Point out that Olek is not shown because he is outside Maria's team.
-6. Optional: attempt to access Olek directly and show `403 Access Denied`.
+## Scene 1 — Architecture (0:45)
 
-Key message:
+Show `architecture.svg`, then `agent-workflows.svg`, then `deploy-topology.svg`:
 
-> Access control is enforced before data reaches the agent. The model never receives data the current user is not allowed to see.
+> The design is a hybrid. The TypeScript app is the security boundary — access
+> control, consent, and PII minimization run in code before the agent is ever
+> called. The Python service is the agent brain: three ADK 2.0 graph
+> workflows — questionnaire, evidence, review — each chaining Gemini agents
+> with deterministic nodes. It's deployed for real: Next.js on Vercel, the
+> agent service on Cloud Run in Vertex mode, Turso as the database — that's
+> the app you're about to see.
 
-## Scene 2 — Generate Questionnaire
+## Scene 2 — Login and manager scope (0:40)
 
-1. Click `Create questionnaire`.
-2. Enter topic:
+1. Open https://reviewops-agent.vercel.app, log in as `Maria — Engineering Manager`.
+2. Show her direct reports (Anna, Mark, Julia); point out Olek is absent —
+   he's on another team.
+3. Optional: hit Olek's URL directly → `403 Access Denied`.
 
-```text
-Create a Q2 collaboration and ownership evidence survey for my direct reports. I want concrete examples, impact, and supporting artifacts.
-```
+> Access control is enforced in code before data reaches the agent. The model
+> never sees data the current user isn't allowed to see.
 
-3. Select period: `2026-Q2`.
-4. Submit.
-5. Show generated questionnaire (title, purpose, privacy mode, questions + an
-   explanation each), then the Safety Agent result.
-6. **(Highlight — dynamic generation)** Create a second questionnaire and *paste a
-   structure* in the notes: a skill list + an L1–L5 scale + two opt-in sections.
-   Show it produced a **per-skill matrix** with dropdowns, grouped sections, opt-in
-   gates, and **one shared rating-scale legend** (not the scale repeated on every
-   skill). Mention number/date/email question types.
-7. **(Highlight — refine)** Use **Refine & regenerate** with feedback (e.g. "drop
-   Angular, add Svelte") to rebuild the draft in place. Then approve.
+## Scene 3 — Generate a questionnaire (0:50)
 
-Key message:
+1. `Create questionnaire` → topic:
+   `Create a Q2 collaboration and ownership evidence survey for my direct reports. I want concrete examples, impact, and supporting artifacts.`
+   → period `2026-Q2` → submit.
+2. Show the generated questionnaire and the Safety Agent verdict.
+3. **(Optional — only if under budget.)** Paste a skill list + L1–L5 scale in
+   the notes of a second questionnaire; show the per-skill matrix with one
+   shared rating legend. This is the most impressive beat but also the
+   slowest — the writeup covers it either way.
+4. `Refine & regenerate` with one line of feedback, then approve. Show the
+   outbox for ~10 seconds: personal token links minted per report, one token =
+   one assignment. Copy Anna's link.
 
-> The manager doesn't hand-write the survey. The agent reproduces whatever
-> structure the manager describes — a short evidence survey or a full skill matrix
-> — the Safety Agent reviews it, the manager can refine it in natural language,
-> and nothing is sent until approval.
+> The manager describes the survey; the agent builds it, a safety agent
+> reviews it, and nothing is sent until the manager approves.
 
-## Scene 3 — Personal Token Links
+## Scene 4 — Employee evidence: weak → strong (0:40)
 
-1. After approval, show mock outbox.
-2. Show generated personal links for Anna, Mark, Julia.
-3. Emphasize that each token is scoped to one assignment.
-4. Copy Anna's link.
+1. Open Anna's link in a second tab. Submit the weak answer:
+   `I helped with frontend.`
+2. Show the Evidence Validator's follow-up asking for a concrete example.
+3. Submit the improved answer:
+   `I refactored the shared tooltip component and helped Mark integrate it in the billing screen. This reduced duplicated UI logic and closed two layout bugs. Evidence: PR-123 and BUG-45.`
+4. Show the resulting evidence card: summary, impact, mapped value, quality
+   score, evidence ID.
 
-Key message:
+> The agent raises evidence quality before it ever reaches the manager — and
+> weak evidence is never silently stored. (One sentence, no demo: employees
+> can also add standalone evidence; low-confidence items go to the manager's
+> review queue instead of auto-approving.)
 
-> In the MVP, the app generates personal token links. Slack delivery is a roadmap item.
+## Scene 5 — Review draft + fairness check (0:50)
 
-## Scene 4 — Employee Submits Weak Evidence
+1. Back as Maria: open the results view (response status, strong/weak counts,
+   mapped values), then pick Anna.
+2. Show **Evidence on file**, generate the `2026-Q2` draft. Note it is
+   grounded in consent-gated self-evidence **plus connector signals** (peer
+   reviews, feedback, 1:1 notes fetched transiently from the mock
+   BambooHR/Lattice connector), cited as `[ev_…]` and `[peer:…]`.
+3. Show the Fairness & Grounding warnings — e.g. an unsupported-claim warning
+   with a suggested evidence-backed replacement.
 
-1. Open Anna's personal link in a new browser tab.
-2. Show questionnaire purpose and privacy notice.
-3. Submit weak answer:
+> The draft comes from approved evidence, not model imagination — and a second
+> agent reviews the review before the manager ever approves it.
 
-```text
-I helped with frontend.
-```
+## Scene 6 — Approve and export (0:15)
 
-4. Submit.
-5. Show Evidence Validator follow-up:
-
-```text
-Can you add one concrete example, who benefited, what changed, and any link or artifact that supports it?
-```
-
-Key message:
-
-> The agent improves evidence quality before it reaches the manager review workflow.
-
-## Scene 5 — Employee Improves Evidence
-
-Submit improved answer:
-
-```text
-I refactored the shared tooltip component and helped Mark integrate it in the billing screen. This reduced duplicated UI logic and closed two layout bugs. Evidence: PR-123 and BUG-45.
-```
-
-Show resulting evidence card:
-
-- summary;
-- impact;
-- mapped company value;
-- quality score;
-- evidence ID.
-
-Key message:
-
-> ReviewOps turns free-text answers into structured, review-ready evidence cards.
-
-## Scene 5b — Standalone Evidence + Weak-Confirm
-
-1. Log in as **Anna** → **My evidence** → **Add evidence**.
-2. Type a thin entry ("I'm awesome"). Show it is **not saved** — the validator
-   returns a follow-up and asks her to **improve or "submit anyway for manager
-   review."**
-3. Submit anyway → it lands in the manager's queue as `pending_review`. Then edit
-   to a strong entry and resubmit — show it **updates the same item** (no
-   duplicate) and **auto-approves**.
-
-Key message:
-
-> Weak evidence isn't silently stored; the employee decides. Iterating updates the
-> same item, and once a manager has reviewed it, it's locked.
-
-## Scene 6 — Manager Views Results
-
-1. Return to Maria dashboard.
-2. Open questionnaire results.
-3. Show:
-   - response status;
-   - strong/weak evidence count;
-   - mapped values;
-   - gaps or warnings.
-
-Key message:
-
-> Maria sees results only for her direct reports.
-
-## Scene 7 — Generate Review Draft
-
-1. Choose Anna. On the review-prep page, show **Evidence on file** (every item +
-   status; pending items quote the raw text + the agent's concern in the queue).
-2. Generate `2026-Q2` review draft. Note the draft is grounded in consent-gated
-   self-evidence **plus connector signals** — peer reviews, feedback, and 1:1
-   notes fetched **transiently** (not stored) from the mock BambooHR/Lattice
-   connector — cited as `[ev_…]` and `[peer:…]`.
-3. Show review draft Markdown:
-   - summary;
-   - achievements;
-   - evidence-backed examples;
-   - growth areas;
-   - suggested next-period goals;
-   - evidence references.
-
-Key message:
-
-> The draft is generated from approved evidence, not from raw HR data or model imagination.
-
-## Scene 8 — Fairness and Grounding Check
-
-Show Fairness and Grounding Agent warnings:
-
-- unsupported claim warning;
-- vague praise warning;
-- recency bias warning, if present;
-- sensitive data warning, if present.
-
-Example:
-
-```text
-Warning: The claim "Anna consistently improves team velocity" is too broad and not directly supported by evidence. Suggested replacement: "Anna reduced duplicated UI logic by refactoring the shared tooltip component, supported by Evidence E-004."
-```
-
-Key message:
-
-> The system reviews the review draft before manager approval.
-
-## Scene 9 — Approve and Export
-
-1. Manager approves final draft.
-2. Export Markdown.
-3. Open exported file path.
-
-Key message:
+Approve the draft, export the Markdown, flash the exported file.
 
 > The final action is human-approved and auditable.
 
-## Closing Message
+## Scene 7 — The build (0:30)
 
-Say:
+Screen: repo README or split of `agent-service/app/` + eval results.
 
-> ReviewOps demonstrates multi-agent workflow, tool-mediated data access, permission filtering, privacy-aware context preparation, evidence validation, human approval, and grounded review generation. The demo uses synthetic data and mock connectors, but the architecture is designed for future Lattice, BambooHR, Notion, and Slack adapters.
+> Built as three ADK 2.0 graph workflows with Pydantic-typed I/O; the review
+> agent loads a drafting skill via SkillToolset. Behavior is graded with
+> agents-cli eval — LLM-as-judge over golden datasets. That loop caught a real
+> safety gap: protected-topic requests were silently laundered into an
+> "approved" survey; a hard-refuse path took that case from 1 out of 5 to 5
+> out of 5. Sixty-seven Vitest tests cover the security stories.
+
+**Antigravity beat (15–20s, only if you can show real usage):** switch to the
+Antigravity IDE with the project open and your genuine task history visible:
+
+> Parts of the project were built and refactored with Google Antigravity —
+> here's the actual task history.
+
+Keep the claim proportional to real usage; do not overclaim.
+
+Close over `cover.png`:
+
+> ReviewOps: earn the trust in code, then use the model. Live demo and public
+> repo linked below.
+
+## After recording
+
+1. Upload to YouTube as **Public** (not unlisted — safest for "no
+   login/paywall"). Title: `ReviewOps Agent — Kaggle AI Agents Intensive Capstone`.
+2. Description: live demo URL + GitHub URL.
+3. Paste the YouTube URL into `KAGGLE_WRITEUP_DRAFT.md` (replacing the
+   placeholder) and attach the video in the Kaggle Writeup media gallery.
+
+## Time budget recap
+
+| Scene | Budget |
+|---|---|
+| 0 Problem & why agents | 0:30 |
+| 1 Architecture | 0:45 |
+| 2 Login & scope | 0:40 |
+| 3 Questionnaire | 0:50 |
+| 4 Evidence weak→strong | 0:40 |
+| 5 Draft + fairness | 0:50 |
+| 6 Approve & export | 0:15 |
+| 7 The build (+ Antigravity) | 0:30 |
+| **Total** | **4:40** |

@@ -82,12 +82,13 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
 - ✅ **Public project link satisfied** — live demo at
   **https://reviewops-agent.vercel.app** (Vercel + Cloud Run + Turso, verified
   end-to-end).
-- 🔴 **Submission artifacts (HIGH, still TODO):** finalize the Kaggle Writeup
-  (≤2,500 words, *Agents for Business*), a cover image, and a **≤5-min YouTube demo
-  video**. These are *required* for eligibility and worth 30 of 100 points — do not
-  let them slip.
-- **Optionally also make the GitHub repo public** as a backup project link (the repo
-  is `github.com/mkiselyow/ReviewOps-Agent`; currently private).
+- 🔴 **Submission artifacts (HIGH, still TODO):** record and upload the **≤5-min
+  YouTube demo video** (script ready in [DEMO_SCRIPT.md](DEMO_SCRIPT.md)), insert
+  its URL into the writeup, then submit the Kaggle Writeup (draft is
+  submission-ready at 1,898/2,500 words, *Agents for Business*, cover image in
+  `diagrams/`). Required for eligibility and worth 30 of 100 points.
+- ✅ **GitHub repo public** — `github.com/mkiselyow/ReviewOps-Agent` (MIT license,
+  About/topics set, README + diagrams verified rendering anonymously).
 - **CI (GitHub Actions).** *Why:* catch regressions automatically on every push so
   the submission stays green. *What:* `.github/workflows/ci.yml` running
   `npm run typecheck` + `npm test` + `npm run build` (fast, no GCP). Separately, a
