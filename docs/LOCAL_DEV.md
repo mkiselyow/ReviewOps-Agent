@@ -119,3 +119,4 @@ Agent behavior is evaluated separately (`agents-cli eval`, see
 | `429 limit: 0` for a model | That model isn't on your tier — switch `GEMINI_MODEL`. |
 | Port 8800 in use | Stop the old uvicorn, or pass `--port` and update `AGENT_SERVICE_URL`. |
 | Too-noisy OTel logs | `DISABLE_LOCAL_OTEL=1` before starting the service. |
+| `db:push` warns about data loss / `seed` fails with `no such column` | Your local `data/reviewops.sqlite` predates a schema change. It's disposable demo data: delete the file, then re-run `npm run db:push && npm run seed`. |

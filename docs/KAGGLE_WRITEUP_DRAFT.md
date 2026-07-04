@@ -73,7 +73,7 @@ whole architecture.
 ReviewOps is a **hybrid**: a TypeScript **Next.js** frontend and a **Python
 ADK 2.0** agent service, talking over REST.
 
-![System architecture](diagrams/architecture.svg)
+![System architecture](diagrams/architecture-detailed.svg)
 
 - **Next.js app (the security boundary).** Route handlers → auth · RBAC ·
   permissions → services → privacy filter → dual-driver Drizzle DB. This tier owns

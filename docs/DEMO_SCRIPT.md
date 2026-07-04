@@ -23,7 +23,7 @@ Before recording:
 1. Re-seed the demo DB so state is clean (see [DEPLOY.md](DEPLOY.md) — e2e and
    earlier takes write drafts).
 2. Have these images ready to show full-screen:
-   `diagrams/cover.png`, `diagrams/architecture.svg`,
+   `diagrams/cover.png`, `diagrams/architecture-detailed.svg`,
    `diagrams/agent-workflows.svg`, `diagrams/deploy-topology.svg`.
 3. Optional (build scene): Antigravity IDE open on the repo with your real
    task history visible.
@@ -46,7 +46,7 @@ Narrate over `cover.png`:
 
 ## Scene 1 — Architecture (0:45)
 
-Show `architecture.svg`, then `agent-workflows.svg`, then `deploy-topology.svg`:
+Show `architecture-detailed.svg`, then `agent-workflows.svg`, then `deploy-topology.svg`:
 
 > The design is a hybrid. The TypeScript app is the security boundary — access
 > control, consent, and PII minimization run in code before the agent is ever

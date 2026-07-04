@@ -15,14 +15,27 @@ sending raw HR data to the model.
 
 ---
 
-## Business problem
+## The problem
 
 Engineering managers prepare reviews from incomplete memory, scattered notes,
 and last-minute evidence gathering. Early-year work is forgotten, recent events
 are over-weighted, feedback turns vague, and sensitive data can leak into AI
-prompts. ReviewOps Agent gives employees a structured place to submit their own
-evidence, validates that evidence, and grounds every review claim in approved
-evidence — without making any HR decision automatically.
+prompts. The cost is concrete: hours per report reconstructing a year from
+memory, reviews skewed toward whoever spoke up last quarter, and a compliance
+incident every time a manager "fixes" it by pasting 1:1 notes into a public
+chatbot.
+
+## The solution
+
+ReviewOps Agent gives employees a structured place to submit their own success
+evidence all year, validates that evidence with an agent (asking follow-ups
+when answers are vague), and grounds every claim in a manager's review draft in
+evidence the employee approved — without making any HR decision automatically,
+and without ever sending raw HR data to the model.
+
+The core design decision: **access control, consent, and PII minimization run
+in the TypeScript application _before_ the agent is ever called.** The LLM is
+never the authorization boundary — earn the trust in code, then use the model.
 
 ## What makes it an agent (not a chat app)
 
@@ -39,23 +52,9 @@ privacy filtering, and human-in-the-loop approval:
 8. Flag unsupported claims, vague feedback, recency bias, and sensitive data.
 9. Require manager approval before export.
 
-## Agent architecture (hybrid)
+## Architecture
 
-![ReviewOps Agent — system architecture](docs/diagrams/architecture.svg)
-
-> More diagrams (agent workflows, deploy topology): **[docs/diagrams/](docs/diagrams/)** ·
-> Mermaid source in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
-
-```
-Next.js app (TypeScript)                Python ADK 2.0 agent service (FastAPI)
-  UI / Route handlers                     graph Workflows:
-  → Auth + RBAC + permissions               questionnaire → safety
-    (before any model call)                 security → validator → finalize (route)
-  → Orchestrator ── REST ──▶               privacy → review_draft → fairness
-    (agentClient)                         + Gemini (API key); OpenTelemetry
-  → Services + privacy filter
-  → SQLite (Drizzle) + mock HRIS
-```
+![ReviewOps Agent — system architecture](docs/diagrams/architecture-detailed.svg)
 
 The **agent brain runs in the Python service** (`agent-service/`) as real ADK 2.0
 graph `Workflow`s with Pydantic-typed I/O; the TS app calls it over REST via
@@ -63,6 +62,17 @@ graph `Workflow`s with Pydantic-typed I/O; the TS app calls it over REST via
 consent, and PII minimization happen in the **TS app before the REST call** — the
 LLM is never the security boundary. (Unit tests mock the client; there is no
 in-process agent fallback.) See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+
+### The three agent workflows
+
+Each workflow chains LLM agents with deterministic nodes; I/O is structured
+Pydantic throughout.
+
+![The three ADK agent workflows](docs/diagrams/agent-workflows.svg)
+
+### Deployment topology
+
+![Deployment topology](docs/diagrams/deploy-topology.svg)
 
 ## Tech stack
 
@@ -195,7 +205,16 @@ full flow.
 The **Python agent service is deployed to Cloud Run** (stateless; Vertex mode, no
 API key in the image). The **Next.js frontend** is deployed to **Vercel** backed by
 **Turso/libSQL** (the DB layer is dual-driver: better-sqlite3 locally + Turso in
-prod). Full reproduction: **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+prod).
+
+To reproduce the deployment (**full steps: [docs/DEPLOY.md](docs/DEPLOY.md)**):
+
+1. **Agent service → Cloud Run:** `gcloud run deploy reviewops-agent --source agent-service`
+   with Vertex mode env vars and an `AGENT_SHARED_SECRET` (no API key in the image).
+2. **Database → Turso:** `turso db create reviewops`, then `npx drizzle-kit push`
+   and `npm run seed` pointed at the Turso URL.
+3. **Frontend → Vercel:** import the repo, set `AGENT_SERVICE_URL`, the Turso
+   vars, `SESSION_SECRET`, and the matching `AGENT_SHARED_SECRET`.
 
 ## Roadmap
 
@@ -215,8 +234,25 @@ evaluation framework (`agents-cli eval`, LLM-as-judge, trajectory) · observabil
 
 ## Documentation
 
-Full specs live in [`docs/`](docs/): product spec, architecture & security,
-demo script, evaluation plan, roadmap, and the Kaggle writeup draft.
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — the authoritative doc:
+  hybrid architecture, agent-workflow graphs (Mermaid), data model, access
+  control & token design, privacy pipeline, human-in-the-loop, testing, and how
+  the Google 2026 *Security & Evaluation* and *Agent Skills* whitepapers are
+  applied. **Start here.**
+- **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — local runbook: start both
+  services and click the whole flow.
+- [docs/DEPLOY.md](docs/DEPLOY.md) — reproduce the Cloud Run + Vercel + Turso
+  deployment.
+- [docs/EVALUATION_PLAN.md](docs/EVALUATION_PLAN.md) — evaluation framework;
+  latest scores in [docs/EVAL_RESULTS.md](docs/EVAL_RESULTS.md).
+- [docs/PROJECT_SPEC.md](docs/PROJECT_SPEC.md) — product definition, users,
+  user stories.
+- [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) — the capstone video walkthrough.
+- [docs/ROADMAP.md](docs/ROADMAP.md) — post-MVP integrations.
+- [docs/KAGGLE_WRITEUP_DRAFT.md](docs/KAGGLE_WRITEUP_DRAFT.md) — the Kaggle
+  writeup.
+- [docs/diagrams/](docs/diagrams/) — rendered SVG diagrams.
+- `docs/PROMPT_FOR_CODING_AGENT.md` — original scaffolding prompt (historical).
 
 ## Ethical positioning
 

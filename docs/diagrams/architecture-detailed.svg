@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 720" role="img" aria-labelledby="t d" font-family="'Segoe UI',system-ui,-apple-system,sans-serif">
   <title id="t">ReviewOps Agent — detailed system architecture</title>
-  <desc id="d">Browser to a Next.js server (route handlers, Auth/RBAC/permissions, services, privacy filter, dual-driver Drizzle DB) which enforces access control and PII minimization before a REST call to a stateless Python ADK 2.0 agent on Cloud Run (workflow graphs, pre-LLM security node, Gemini via Vertex, SkillToolset, OpenTelemetry to Cloud Trace).</desc>
+  <desc id="d">Browser to a Next.js server (route handlers, Auth/RBAC/permissions, services, mock BambooHR/Lattice connectors, privacy filter, dual-driver Drizzle DB, human-in-the-loop approval) which enforces access control and PII minimization before a REST call to a stateless Python ADK 2.0 agent on Cloud Run (workflow graphs, pre-LLM security node, Gemini via Vertex, SkillToolset, OpenTelemetry to Cloud Trace).</desc>
   <defs>
     <marker id="ar" markerWidth="10" markerHeight="8" refX="8" refY="3" orient="auto"><path d="M0 0 L8 3 L0 6 Z" fill="#8aa0c4"/></marker>
     <marker id="am" markerWidth="10" markerHeight="8" refX="8" refY="3" orient="auto"><path d="M0 0 L8 3 L0 6 Z" fill="#e6b23f"/></marker>
@@ -32,15 +32,18 @@
   <rect x="277" y="176" width="306" height="44" rx="9" class="box"/><text x="430" y="203" text-anchor="middle" class="lab">Route handlers · /api/*</text>
   <rect x="277" y="234" width="306" height="52" rx="9" class="box"/><text x="430" y="256" text-anchor="middle" class="lab">Auth · RBAC · permissions</text><text x="430" y="273" text-anchor="middle" class="sm">canManagerViewEmployee · consent gate</text>
   <rect x="277" y="300" width="306" height="60" rx="9" class="box"/><text x="430" y="323" text-anchor="middle" class="lab">Services</text><text x="430" y="341" text-anchor="middle" class="sm">hris · survey · evidence · review · outbox · audit</text>
-  <rect x="277" y="374" width="306" height="52" rx="9" class="box"/><text x="430" y="396" text-anchor="middle" class="lab">Privacy filter (deterministic)</text><text x="430" y="413" text-anchor="middle" class="sm">PII redaction · data minimization</text>
-  <rect x="277" y="442" width="306" height="56" rx="9" fill="#12233d" stroke="#34d399" stroke-width="1.6"/><text x="430" y="465" text-anchor="middle" class="lab" fill="#c9f5e4">Drizzle ORM · dual-driver DB</text><text x="430" y="482" text-anchor="middle" class="sm">SQLite (local) / Turso libSQL (prod)</text>
+  <rect x="277" y="374" width="306" height="44" rx="9" fill="#16223c" stroke="#8aa0c4" stroke-width="1.4" stroke-dasharray="4 3"/><text x="430" y="392" text-anchor="middle" class="lab">Connectors — mock BambooHR / Lattice</text><text x="430" y="408" text-anchor="middle" class="sm">peer reviews · feedback · 1:1 notes · goals (transient, not stored)</text>
+  <rect x="277" y="432" width="306" height="52" rx="9" class="box"/><text x="430" y="454" text-anchor="middle" class="lab">Privacy filter (deterministic)</text><text x="430" y="471" text-anchor="middle" class="sm">PII redaction · data minimization</text>
+  <rect x="277" y="498" width="306" height="52" rx="9" fill="#12233d" stroke="#34d399" stroke-width="1.6"/><text x="430" y="519" text-anchor="middle" class="lab" fill="#c9f5e4">Drizzle ORM · dual-driver DB</text><text x="430" y="536" text-anchor="middle" class="sm">SQLite (local) / Turso libSQL (prod)</text>
+  <rect x="277" y="560" width="306" height="42" rx="9" fill="#231a0e" stroke="#e6b23f" stroke-width="1.8"/><text x="430" y="577" text-anchor="middle" class="lab" fill="#f6d488">🧑 Human-in-the-loop approval</text><text x="430" y="594" text-anchor="middle" class="sm" fill="#d9b56a">gate before send · draft · approve · export</text>
   <!-- next vertical chain -->
   <line x1="430" y1="220" x2="430" y2="232" stroke="#8aa0c4" marker-end="url(#ar)"/>
   <line x1="430" y1="286" x2="430" y2="298" stroke="#8aa0c4" marker-end="url(#ar)"/>
   <line x1="430" y1="360" x2="430" y2="372" stroke="#8aa0c4" marker-end="url(#ar)"/>
-  <!-- services -> DB (left elbow, bypasses privacy box) -->
-  <path d="M277 330 L263 330 L263 470 L275 470" fill="none" stroke="#8aa0c4" marker-end="url(#ar)"/>
-  <text x="243" y="404" text-anchor="middle" class="al" transform="rotate(-90 243 404)">persist</text>
+  <line x1="430" y1="418" x2="430" y2="430" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <!-- services -> DB (left elbow, bypasses connector + privacy boxes) -->
+  <path d="M277 330 L263 330 L263 524 L275 524" fill="none" stroke="#8aa0c4" marker-end="url(#ar)"/>
+  <text x="243" y="428" text-anchor="middle" class="al" transform="rotate(-90 243 428)">persist</text>
 
   <!-- ============ Python ADK agent service ============ -->
   <rect x="655" y="108" width="545" height="500" rx="16" fill="#0f1a30" stroke="#5b9bff" stroke-width="2"/>
@@ -69,19 +72,20 @@
   <text x="243" y="340" class="al">render</text>
 
   <!-- Privacy -> REST : the security-boundary crossing -->
-  <path d="M583 398 L640 300 L673 205" fill="none" stroke="#e6b23f" stroke-width="2.2" marker-end="url(#am)"/>
-  <text x="648" y="290" class="aml" font-weight="700">REST call</text>
-  <text x="648" y="305" class="aml">authorized · PII-safe context</text>
+  <path d="M583 452 L642 310 L673 207" fill="none" stroke="#e6b23f" stroke-width="2.2" marker-end="url(#am)"/>
+  <text x="650" y="292" class="aml" font-weight="700">REST call</text>
+  <text x="650" y="307" class="aml">authorized · PII-safe context</text>
   <!-- REST -> Services : structured result -->
-  <path d="M673 220 L620 300 L585 330" fill="none" stroke="#8aa0c4" stroke-dasharray="4 3" marker-end="url(#ar)"/>
-  <text x="600" y="356" class="al">structured result</text>
+  <path d="M673 220 L622 296 L585 326" fill="none" stroke="#8aa0c4" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <text x="598" y="352" class="al">structured result</text>
 
   <!-- footer legend -->
   <rect x="40" y="640" width="1160" height="52" rx="12" fill="#0f1a30" stroke="#23324e"/>
-  <text x="60" y="662" class="lab" font-size="12">Legend</text>
-  <rect x="120" y="652" width="14" height="14" rx="3" fill="#0f1a30" stroke="#e6b23f" stroke-dasharray="3 2"/><text x="142" y="663" class="sm">security boundary (TS app)</text>
-  <rect x="320" y="652" width="14" height="14" rx="3" fill="#16223c" stroke="#5b9bff"/><text x="342" y="663" class="sm">LLM agent</text>
-  <rect x="450" y="652" width="14" height="14" rx="3" fill="#1a1730" stroke="#b98bff"/><text x="472" y="663" class="sm">model</text>
-  <rect x="545" y="652" width="14" height="14" rx="3" fill="#12233d" stroke="#34d399"/><text x="567" y="663" class="sm">data / persistence</text>
-  <text x="720" y="663" class="sm">Human-in-the-loop approval before sending questionnaires, generating drafts, approving, and exporting · every sensitive action audited.</text>
+  <text x="60" y="670" class="lab" font-size="12">Legend</text>
+  <rect x="122" y="659" width="14" height="14" rx="3" fill="#0f1a30" stroke="#e6b23f" stroke-dasharray="3 2"/><text x="144" y="670" class="sm">security boundary (TS app)</text>
+  <rect x="308" y="659" width="14" height="14" rx="3" fill="#16223c" stroke="#5b9bff"/><text x="330" y="670" class="sm">LLM agent</text>
+  <rect x="412" y="659" width="14" height="14" rx="3" fill="#1a1730" stroke="#b98bff"/><text x="434" y="670" class="sm">model</text>
+  <rect x="496" y="659" width="14" height="14" rx="3" fill="#12233d" stroke="#34d399"/><text x="518" y="670" class="sm">data / persistence</text>
+  <rect x="634" y="659" width="14" height="14" rx="3" fill="#16223c" stroke="#8aa0c4" stroke-dasharray="4 3"/><text x="656" y="670" class="sm">mock connector (real API / MCP swaps in)</text>
+  <rect x="890" y="659" width="14" height="14" rx="3" fill="#231a0e" stroke="#e6b23f"/><text x="912" y="670" class="sm">human approval gate · sensitive actions audited</text>
 </svg>
