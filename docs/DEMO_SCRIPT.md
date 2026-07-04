@@ -9,8 +9,8 @@ agent for engineering managers.
 **Video length: hard cap 5:00 (Kaggle limit). Target 4:30.** Practice each
 scene against the time budget below; cut the optional beats first if over.
 
-Rubric bullets this script covers: problem statement → why agents →
-architecture (images) → demo → the build.
+Rubric bullets this script covers: problem statement → solution →
+architecture + why agents (over the workflow diagrams) → demo → the build.
 
 ## Setup
 
@@ -31,7 +31,7 @@ Before recording:
 (Local-stack instructions live in [LOCAL_DEV.md](LOCAL_DEV.md) if you prefer
 recording locally.)
 
-## Scene 0 — The problem, the solution, why agents (0:40)
+## Scene 0 — The problem & the solution (0:30)
 
 Narrate over `cover.png`:
 
@@ -40,31 +40,34 @@ Narrate over `cover.png`:
 > 1:1 notes end up pasted into public chatbots.
 >
 > ReviewOps fixes the workflow, not just the writing. Employees submit evidence
-> all year; the draft is computed from every PII-filtered source — self-
-> assessment, peer reviews, feedback, 1:1 notes — every claim cites evidence,
-> and every role expectation is rated, with gaps called out and turned into
-> requests for more information. The decision stays with the manager —
-> ReviewOps reinforces it with evidence.
->
-> Why agents, not one big prompt? Because this is a chain of distinct judgment
-> steps: build a questionnaire from the manager's structure, safety-check it,
-> score each answer and ask a follow-up when it's weak, draft against the role
-> matrix, then audit the draft for fairness. Each step is a separate agent or a
-> deterministic check — so each can be tested, evaluated, and trusted on its
-> own. A single completion can't ask a follow-up question or veto its own
-> output.
+> all year, and the annual review draft is computed from every PII-filtered
+> source available — self-assessment, peer reviews, feedback, 1:1 notes.
+> Every claim cites evidence, every role expectation is rated, and gaps become
+> requests for more information instead of assumed strengths. The decision
+> stays with the manager — ReviewOps reinforces it with evidence.
 
-## Scene 1 — Architecture (0:45)
+## Scene 1 — Architecture & why agents (0:55)
 
-Show `architecture-detailed.svg`, then `agent-workflows.svg`, then `deploy-topology.svg`:
+Show `architecture-detailed.svg`:
 
 > The design is a hybrid. The TypeScript app is the security boundary — access
 > control, consent, and PII minimization run in code before the agent is ever
-> called. The Python service is the agent brain: three ADK 2.0 graph
-> workflows — questionnaire, evidence, review — each chaining Gemini agents
-> with deterministic nodes. It's deployed for real: Next.js on Vercel, the
-> agent service on Cloud Run in Vertex mode, Turso as the database — that's
-> the app you're about to see.
+> called. The Python service is the agent brain.
+
+Switch to `agent-workflows.svg` (the three workflow graphs on screen):
+
+> And this is why it's agents, not one big prompt. The work is a chain of
+> distinct judgment steps — build a questionnaire from the manager's structure,
+> safety-check it, score each employee answer and ask a follow-up when it's
+> weak, draft the review against the role matrix, then audit that draft for
+> fairness. Each box you see is a separate agent or a deterministic check, so
+> each can be tested and evaluated on its own. A single chat completion can't
+> ask a follow-up question or veto its own output.
+
+Switch to `deploy-topology.svg`:
+
+> And it's deployed for real: Next.js on Vercel, the agent service on Cloud Run
+> in Vertex mode, Turso as the database — that's the app you're about to see.
 
 ## Scene 2 — Login and manager scope (0:40)
 
@@ -170,8 +173,8 @@ Close over `cover.png`:
 
 | Scene | Budget |
 |---|---|
-| 0 Problem, solution, why agents | 0:40 |
-| 1 Architecture | 0:45 |
+| 0 Problem & solution | 0:30 |
+| 1 Architecture & why agents | 0:55 |
 | 2 Login & scope | 0:40 |
 | 3 Questionnaire | 0:50 |
 | 4 Evidence weak→strong | 0:40 |
