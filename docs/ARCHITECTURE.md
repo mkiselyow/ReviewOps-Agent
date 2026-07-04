@@ -20,9 +20,6 @@ The design deliberately applies two Google 2026 whitepapers:
 
 ## 1. System architecture
 
-> 📊 Presentation-ready versions of these diagrams (for the writeup/slides) live in
-> **[docs/diagrams/](diagrams/)**.
-
 ```mermaid
 flowchart TB
   subgraph Client["Browser"]

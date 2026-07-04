@@ -86,9 +86,8 @@ ADK 2.0** agent service, talking over REST.
 
 The agent brain lives in `agent-service/`; the app calls it via
 `src/server/agentClient.ts`. Unit tests mock the client — there is no in-process
-agent fallback, so the boundary is real. More diagrams (detailed architecture,
-agent workflows, deploy topology) live in [`docs/diagrams/`](diagrams/), with
-maintainable Mermaid source in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+agent fallback, so the boundary is real. The full architecture detail lives in
+[`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 The design deliberately applies two Google (2026) whitepapers, referenced by
 title: *Vibe Coding Agent Security and Evaluation* (the 7-pillar security model,
