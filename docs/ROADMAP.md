@@ -263,6 +263,9 @@ Support recurring review workflows.
 - Reminder schedule.
 - Missing evidence alerts.
 - Manager action board.
+- One-click follow-up on review gaps: generate a targeted mini-questionnaire
+  from the draft's "not yet evidenced" role expectations and send it via the
+  outbox (today the draft lists the requests; the manager follows up manually).
 
 ## Phase 7 — Advanced Fairness and Analytics
 

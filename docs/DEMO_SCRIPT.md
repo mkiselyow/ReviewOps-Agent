@@ -106,11 +106,17 @@ Show `architecture-detailed.svg`, then `agent-workflows.svg`, then `deploy-topol
    grounded in consent-gated self-evidence **plus connector signals** (peer
    reviews, feedback, 1:1 notes fetched transiently from the mock
    BambooHR/Lattice connector), cited as `[ev_…]` and `[peer:…]`.
-3. Show the Fairness & Grounding warnings — e.g. an unsupported-claim warning
+3. Scroll to **Role-Expectation Coverage**: every expectation of Anna's role is
+   rated (`at level` / `above level` / `developing toward level` /
+   `not yet evidenced`), and the **Requests for More Information** section lists
+   what to collect for the un-evidenced ones.
+4. Show the Fairness & Grounding warnings — e.g. an unsupported-claim warning
    with a suggested evidence-backed replacement.
 
-> The draft comes from approved evidence, not model imagination — and a second
-> agent reviews the review before the manager ever approves it.
+> The draft is computed from every PII-filtered source — self-assessment, peer
+> reviews, feedback, 1:1 notes — and calibrated against the role matrix.
+> Nothing without evidence is assumed: the draft asks for what's missing. And a
+> second agent reviews the review before the manager ever approves it.
 
 ## Scene 6 — Approve and export (0:15)
 

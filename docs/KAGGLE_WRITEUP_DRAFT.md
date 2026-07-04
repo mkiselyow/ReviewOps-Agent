@@ -64,8 +64,12 @@ whole architecture.
 5. Strong, consented evidence becomes structured evidence cards mapped to values,
    goals, and role expectations.
 6. The manager generates a review draft for one report. The **Review workflow**
-   drafts only from consented evidence, cites evidence ids, and runs a fairness /
-   grounding check that flags unsupported claims, vague praise, and recency bias.
+   drafts from every PII-filtered source available — self-assessment, peer
+   reviews, feedback, 1:1 notes, goals — cites evidence ids, rates each role
+   expectation (`at level` / `above level` / `developing toward level` / `not
+   yet evidenced`), lists concrete requests for expectations with no evidence,
+   and runs a fairness / grounding check that flags unsupported claims, vague
+   praise, and recency bias.
 7. The manager approves and exports the Markdown review.
 
 ## Architecture
@@ -109,7 +113,9 @@ Each workflow chains **LLM agents** with deterministic **`@node`** functions —
   ≥ threshold auto-approves; below routes to the manager's queue).
 - **Review** — `privacy_node` (redact + minimize) → `review_draft_agent` (cite
   evidence ids) → `fairness_node` (grounding + fairness check). Every claim cites
-  an evidence id; no fabrication; calibrated to the role matrix.
+  an evidence id; no fabrication; every role expectation is rated against the
+  role matrix, and un-evidenced expectations become explicit requests for more
+  information rather than assumed strengths.
 
 The TypeScript app is the orchestrator: it enforces permissions and consent, then
 invokes the appropriate workflow with a minimized payload.

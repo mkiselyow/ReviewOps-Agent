@@ -33,6 +33,16 @@ when answers are vague), and grounds every claim in a manager's review draft in
 evidence the employee approved — without making any HR decision automatically,
 and without ever sending raw HR data to the model.
 
+The review draft itself is computed from **every PII-filtered source
+available** — the employee's self-assessment (survey answers and standalone
+evidence), peer reviews, feedback, 1:1 notes, and goals — and **calibrated
+against the role's expectations**: each claim is cited, and every expectation
+in the role matrix is explicitly rated `at level`, `above level`, `developing
+toward level`, or `not yet evidenced`. Expectations with no supporting signal
+anywhere are never assumed met — the draft marks them and lists concrete
+**requests for the missing information**, which the manager follows up on
+(human-in-the-loop).
+
 The core design decision: **access control, consent, and PII minimization run
 in the TypeScript application _before_ the agent is ever called.** The LLM is
 never the authorization boundary — earn the trust in code, then use the model.
@@ -48,7 +58,8 @@ privacy filtering, and human-in-the-loop approval:
 4. Create personal token links for employees.
 5. Validate responses and ask follow-up questions when evidence is vague.
 6. Turn answers into evidence cards mapped to values/goals/role expectations.
-7. Draft a review **only** from consented, approved evidence.
+7. Draft a review **only** from consented, approved evidence — rating every
+   role expectation and requesting details for the ones with no evidence.
 8. Flag unsupported claims, vague feedback, recency bias, and sensitive data.
 9. Require manager approval before export.
 

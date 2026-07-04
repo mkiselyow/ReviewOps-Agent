@@ -163,6 +163,17 @@ flowchart LR
 All three run live against Gemini (`gemini-2.5-flash`) via the local REST server
 (`app/local_server.py`) and are wired into the TS app over `AGENT_SERVICE_URL`.
 
+**Multi-source, role-calibrated review drafts.** The TS app assembles the review
+context from every PII-filtered source available — consented self-evidence
+(survey answers become self-assessment evidence cards via
+`upsertEvidenceFromResponse`), peer reviews / feedback / 1:1 notes from the
+connectors, and goals — plus the role-expectation matrix and company values.
+`review_draft_agent` must rate **every** role expectation (`at level` /
+`above level` / `developing toward level` / `not yet evidenced`) in a
+"Role-Expectation Coverage" section, and expectations with no supporting signal
+become a "Requests for More Information" section — concrete asks the manager
+follows up on (human-in-the-loop), never gaps silently assumed met.
+
 **Compact plan + deterministic expansion (scaling).** `questionnaire_agent` emits
 a **compact `QuestionnairePlan`** — each item listed ONCE, the rating scale listed
 once, with a per-item `uses_scale` flag — not fully-expanded questions. It's

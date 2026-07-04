@@ -22,6 +22,8 @@
 
 ReviewOps Agent is a permission-aware, evidence-grounded assistant for engineering managers. It helps managers generate targeted questionnaires for their direct reports, collect employee-approved success evidence, validate evidence quality, and generate interim or annual review drafts with human approval.
 
+The review draft is computed from every PII-filtered source available — the employee's self-assessment (survey answers and standalone evidence), peer reviews, feedback, 1:1 notes, and goals — and calibrated against the role-expectation matrix: every expectation is rated `at level` / `above level` / `developing toward level` / `not yet evidenced`, and expectations with no supporting signal become explicit requests for more information that the manager follows up on, rather than being assumed met.
+
 ## 3. Recommended Capstone Track
 
 Primary track: **Agents for Business**
