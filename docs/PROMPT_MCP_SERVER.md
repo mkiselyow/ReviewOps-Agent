@@ -1,53 +1,79 @@
-# Prompt: real MCP server at the connector boundary
+# Prompt: expose ReviewOps as an MCP server (token-authenticated)
 
 > Implementation prompt for a coding agent (written for Google Antigravity).
-> Goal: convert the "mock MCP/connector boundary" into a real MCP server +
-> client without touching the deployed demo's default behavior.
+> Goal: any MCP client (Gemini CLI, Claude Desktop, MCP Inspector) can query a
+> manager's evidence, questionnaire status, and generate review drafts through
+> ReviewOps' own MCP server — with the app's existing RBAC still enforced in
+> code, and identity derived from a manager-issued access token, never from
+> request input.
 
 ---
 
 ## The prompt
 
-You are working in the repo `ReviewOps-Agent` (Next.js 16 + TypeScript frontend in `src/`, Python ADK agent service in `agent-service/` — you will NOT touch the Python side). Read `docs/ARCHITECTURE.md` §3.1 and `src/server/connectors/` first.
+You are working in the repo `ReviewOps-Agent` (Next.js 16 + TypeScript frontend in `src/`, Python ADK agent service in `agent-service/` — you will NOT touch the Python side). Read `docs/ARCHITECTURE.md` and skim `src/server/services/` and `src/server/auth/` before writing code.
 
-**Context.** The app grounds performance-review drafts in "connector signals" (peer reviews, feedback, 1:1 notes, goals). Today these come from an in-process mock: `src/server/connectors/index.ts` defines `MockPerformanceConnector implements PerformanceConnector` (contract in `src/server/connectors/contracts.ts`, data in `src/server/connectors/mockData.ts`). The architecture was designed so a real API or **MCP server** can swap in behind the same interface. Your job is to implement that swap-in for the `PerformanceConnector` only (leave `DirectoryConnector` alone — it reads the app DB).
+**Context.** ReviewOps grounds performance reviews in consented evidence. The TS app is the security boundary: services in `src/server/services/` take an explicit `managerId` and trust the caller to have enforced permissions first — route handlers gate every call via `requireManager()` plus the pure predicates in `src/server/auth/permissions.ts` and `src/server/auth/rbac.ts`. You will add a second, non-HTTP entry surface: an **MCP server** that exposes read + draft capabilities to MCP clients, replicating exactly the same gating. Two modules are Next.js-bound and MUST NOT be imported by anything you write for the MCP process: `src/server/auth/mockSession.ts` (next/headers) and `src/server/http.ts` (next/server). Everything else in `src/server/` is plain Node and safe to reuse.
 
-**Security invariant (do not violate).** The MCP server sits where a real Lattice/BambooHR API would: it is consumed by the **TypeScript service layer**, and everything it returns still flows through the existing privacy filter / PII minimization **before** any LLM call. Do NOT wire MCP tools into the Python agents, and do NOT bypass `gatherReviewSignals`.
+**Security invariants (do not violate):**
+- Identity comes from a token in the server's environment, resolved against a stored hash — never from a tool parameter and never trusted from the LLM. (Same rule as survey links: `src/server/utils/crypto.ts` + `survey_assignments.token_hash` store only the SHA-256 hash.)
+- The token value must never appear in tool results, error messages, or logs.
+- Approval and export are deliberately **excluded** from the MCP surface — human-in-the-loop stays in the UI.
+- Every scoped call re-asserts permissions with the existing predicates; denials are audited.
 
-**Task 1 — MCP server** (`src/mcp/hr-server.ts`):
-- Use the official `@modelcontextprotocol/sdk` (add as a dependency) with the **stdio** transport.
-- Server name `reviewops-hr`, version from package.json.
-- Expose 4 tools whose input schemas (zod — already a dependency) mirror `PerformanceConnector`:
-  - `get_peer_reviews` `{ employeeId: string, cycle?: string }` → `PeerReview[]`
-  - `get_feedback` `{ employeeId: string, cycle?: string }` → `Feedback[]`
-  - `get_one_on_ones` `{ managerId: string, employeeId: string, cycle?: string }` → `OneOnOneNote[]`
-  - `get_goals` `{ employeeId: string, cycle?: string }` → `PerformanceGoal[]`
-- Tool results: JSON in a `text` content block.
-- Data source: import the arrays from `src/server/connectors/mockData.ts` and reuse the same filtering semantics as `MockPerformanceConnector` (including: feedback is dated, not cycle-tagged — cycle filter is a no-op there). Extract that filtering into a small shared module if needed so mock and server cannot drift.
-- The server must be pure (no DB, no network, no env vars) and runnable standalone: add a package.json script `"mcp:hr": "tsx src/mcp/hr-server.ts"`.
-- Give each tool a one-line description written for an MCP client (e.g. "Peer reviews for an employee, optionally filtered by cycle (e.g. 2026-Q2). Lattice-shaped.").
+### Part 1 — MCP access tokens (app side)
 
-**Task 2 — MCP client connector** (`src/server/connectors/mcpPerformance.ts`):
-- `McpPerformanceConnector implements PerformanceConnector` with `source = "mcp"`.
-- Uses the SDK `Client` + `StdioClientTransport` that spawns the server via `tsx src/mcp/hr-server.ts` (resolve the command in a Windows-safe way — this repo is developed on Windows; prefer spawning `process.execPath` with tsx's CLI entry or `npx --no-install tsx`, and verify it actually works on Windows).
-- Lazy singleton: connect on first call, reuse the session, expose a `close()` for tests.
-- Each interface method calls the corresponding tool and parses/validates the JSON result with the zod schemas from Task 1 (share them from one module; never trust the wire blindly).
+1. **Schema** (`src/server/db/schema.ts` + `drizzle-kit` migration): new table `mcp_tokens` — `id` (pk), `user_id` (FK → users), `token_hash` (unique, SHA-256 hex), `label` (nullable), `created_at`, `last_used_at` (nullable), `expires_at` (nullable), `revoked` (boolean, default false). Additive only; nothing existing changes.
+2. **Service** (`src/server/services/mcpTokenService.ts`):
+   - `issueToken(userId, label?)` → plaintext `rop_` + base64url(`crypto.randomBytes(32)`); store ONLY the SHA-256 hash; return the plaintext once. Reuse the hashing helper from `src/server/utils/crypto.ts` if suitable.
+   - `resolveToken(plaintext)` → hash → lookup → returns the active `userId` or `null` (rejects revoked/expired; updates `last_used_at`).
+   - `listTokens(userId)` (id, label, created/last-used/expiry, revoked — never hashes), `revokeToken(userId, tokenId)`.
+3. **Routes + UI**: a minimal "MCP access" section on the manager side (dashboard or a small settings page):
+   - Generate (label optional) → show the plaintext ONCE with a copy button and the warning "store it now; we only keep a hash".
+   - List + revoke.
+   - Route handlers gated with `requireManager()` (from `src/server/http.ts` — fine here, this is the Next side); issuance/revocation logged via `logAudit` (`src/server/services/auditService.ts`; extend the `AuditAction` union with e.g. `mcp_token_issued` / `mcp_token_revoked`).
+   - Managers only (`isManager` — demo Maria included, so judges can reproduce the whole flow).
+4. Follow the existing UI style; keep it small — one card/section, no new nav concepts if avoidable.
 
-**Task 3 — provider selection** (`src/server/connectors/index.ts`):
-- `CONNECTOR_MODE` env var: `"mock"` (default, current behavior) | `"mcp"`.
-- Only the `performance` export switches; `directory` stays mock. Default MUST remain in-process mock so the deployed Vercel demo is completely unaffected.
+### Part 2 — the MCP server
 
-**Task 4 — parity tests** (`tests/connectors-mcp.test.ts`):
-- Vitest. Start the real MCP connector, and assert for a known seed employee (see `mockData.ts` for ids) that each of the 4 methods returns deep-equal results to `MockPerformanceConnector`, with and without a `cycle` filter.
-- Also assert `gatherReviewSignals` output parity end-to-end with the MCP connector active.
-- Clean up the child process in `afterAll`. The suite must pass on Windows and must not leak a hanging process. All existing tests must keep passing (`npm test`), plus `npm run typecheck` and `npm run build`.
+1. **File** `src/mcp/reviewops-server.ts`, using the official `@modelcontextprotocol/sdk` (add as dependency) with the **stdio** transport. Server name `reviewops`, version from package.json. Add package.json script `"mcp:reviewops": "tsx src/mcp/reviewops-server.ts"` (tsx is already a dependency).
+2. **Startup identity**: read `REVIEWOPS_MCP_TOKEN` from env → `resolveToken` → `isManager(userId)` (from `src/server/services/hrisService.ts`). On any failure: print a clear, token-free message to **stderr** and exit non-zero before serving tools. Cache the acting `managerId` for the process lifetime.
+3. **DB note**: `src/server/db/index.ts` initializes from `DATABASE_URL` (default `file:./data/reviewops.sqlite`, resolved against `process.cwd()`). Document in the README snippet that the MCP client config must set `cwd` to the repo root (or pass an absolute `DATABASE_URL` in env).
+4. **Tools** (zod input schemas — zod is already a dependency; results as JSON in a `text` content block; one-line descriptions written for an MCP client):
 
-**Task 5 — docs (keep them honest):**
-- `README.md`: in "Limitations", replace the "mock BambooHR/Lattice connector … real adapters/MCP can swap in later" line with the new reality (real MCP server + stdio client, mock data behind it; `CONNECTOR_MODE=mcp` to enable); in "Kaggle capstone concepts demonstrated", change "mock MCP/connector boundary" to "MCP server + client at the connector boundary".
-- `docs/ARCHITECTURE.md` §3.1: describe the MCP option (server file, tools, transport, provider switch).
-- `docs/KAGGLE_WRITEUP_DRAFT.md`: update the "Connectors (the MCP boundary)" section and the "mock MCP/connector boundary" phrase in the key-concepts table/why-agent section to describe the real MCP server. **The writeup must stay under 2,500 words** — it is currently ~1,900; keep the edit roughly word-neutral.
-- Mention in README's demo/testing area: `npx @modelcontextprotocol/inspector npm run mcp:hr` lets a judge inspect the tools interactively.
+| Tool | Input | Backing calls (in order) |
+|---|---|---|
+| `list_direct_reports` | — | `getDirectReports(actor)` (`hrisService`) |
+| `list_questionnaires` | — | `listQuestionnairesByManager(actor)` (`surveyService`) |
+| `get_questionnaire_results` | `{ questionnaireId }` | `getQuestionnaire` → `assertOwnsQuestionnaire(actor, q)` (`rbac.ts`) → `getQuestionnaireResults(actor, id)` |
+| `get_evidence_summary` | `{ employeeId, period? }` | `getEmployeeProfile` → `assertManagerCanViewEmployee(actor, employee)` (`permissions.ts`) → `getEmployeeEvidence(actor, employeeId, period)` |
+| `get_pending_evidence` | — | `getPendingEvidenceForManager(actor)` |
+| `list_review_drafts` | — | `listReviewDraftsByManager(actor)` |
+| `get_review_draft` | `{ draftId }` | `getReviewDraft` → `assertOwnsReviewDraft(actor, draft)` → return |
+| `generate_review_draft` | `{ employeeId, period }` | scope assert as above → the same rate-limit gate the HTTP route uses (`src/server/rateLimit.ts`) → `orchestrateReviewGeneration(actor, employeeId, period)` (`src/server/agents/orchestrator.ts`) |
 
-**Ground rules:** no API keys or secrets anywhere; comment the non-obvious decisions (why stdio, why the boundary stays in TS, why the default is mock) in code; match the existing code style (typed, zod-validated, small focused modules); do not modify `agent-service/`; do not change `MockPerformanceConnector` behavior.
+5. **Error handling**: catch `PermissionError` / `NotFoundError` (from `src/server/auth/permissions.ts`) and return them as MCP tool errors (`isError: true`) with the message only — never a stack, never env. Audit denials: `logAudit({ actorId: actor, action: "access_denied", metadata: { via: "mcp", tool } })`. Audit successful `generate_review_draft` as `review_draft_generated` with `metadata.via = "mcp"`.
+6. **`generate_review_draft` dependency**: it calls the Python agent service via `src/server/agentClient.ts`, so `AGENT_SERVICE_URL` (and `AGENT_SHARED_SECRET` if the target sets one) must be present in the MCP server env. If unset, return a tool error explaining that, don't crash.
 
-**Definition of done:** `npm test` (all suites incl. the new parity tests), `npm run typecheck`, `npm run build` all green; `CONNECTOR_MODE=mcp npm run dev` produces a review draft whose connector signals are identical to mock mode; docs updated as above.
+### Part 3 — tests
+
+`tests/mcp-reviewops.test.ts` (vitest, alongside the existing 13 suites):
+- Setup: temp sqlite via `DATABASE_URL`, schema push or programmatic migration consistent with how existing tests build the DB (check `tests/` setup helpers first and reuse them), `seedDatabase()` from `src/server/db/seed.ts`, then `issueToken("u_maria")`.
+- Spawn the real server via the SDK `Client` + `StdioClientTransport` (command: tsx; make it **Windows-safe** — this repo is developed on Windows; prefer spawning `process.execPath` with tsx's CLI entry or verify `npx --no-install tsx` works) passing `REVIEWOPS_MCP_TOKEN` + `DATABASE_URL` in the child env.
+- Assert: `list_direct_reports` returns exactly Anna/Mark/Julia (`u_anna`, `u_mark`, `u_julia`); `get_evidence_summary` for `u_olek` returns a tool error AND writes an `access_denied` audit row; `get_evidence_summary` for `u_anna` deep-equals a direct `getEmployeeEvidence("u_maria","u_anna")` call; a revoked token makes the server exit non-zero at startup.
+- `afterAll`: close the transport, no orphaned child processes.
+- Unit tests for `mcpTokenService`: only hashes stored, resolve→null after revoke and after expiry.
+- Do NOT call `generate_review_draft` in tests (needs live Gemini) — it is verified manually.
+- Definition of green: `npm test` (all suites), `npm run typecheck`, `npm run build`.
+
+### Part 4 — docs (keep them honest, mind the writeup word budget)
+
+- `README.md`: a short **"Use it from any MCP client"** subsection: issue a token in the UI as Maria → client config snippet (command `npm run mcp:reviewops`, `cwd` = repo root, env `REVIEWOPS_MCP_TOKEN`, optional `AGENT_SERVICE_URL`) → `npx @modelcontextprotocol/inspector npm run mcp:reviewops` for interactive inspection. Update the "Kaggle capstone concepts demonstrated" line: "mock MCP/connector boundary" → "MCP server exposing the app's tools (token-authenticated)". Extend the Security-model token bullet to mention MCP tokens (hash-only, revocable, identity never from request input).
+- `docs/ARCHITECTURE.md`: new subsection — the MCP surface, the token identity model, why approve/export are excluded (HITL), and the **production path**: OAuth 2.1 over the streamable-HTTP transport, mapping the verified email to a user via `getUserByEmail`.
+- `docs/KAGGLE_WRITEUP_DRAFT.md`: update the MCP row in the "Capstone key concepts" table and the "mock MCP/connector boundary" phrase in "Why this is an agent, not a chatbot". The writeup is ~1,900 of a hard 2,500-word limit — keep edits roughly word-neutral.
+- `docs/DEMO_SCRIPT.md`: add an optional ~30s beat in the build scene: generate the token as Maria on camera, paste into MCP Inspector, call `list_direct_reports` then `get_evidence_summary` for Anna.
+
+**Ground rules:** no API keys or secrets committed; comment the non-obvious decisions in code (identity from config not request, HITL exclusions, hash-only storage, why stdio); match existing code style (typed, zod-validated, small modules); don't modify `agent-service/`; existing app behavior unchanged (everything is additive).
+
+**Definition of done:** all green (`npm test`, `npm run typecheck`, `npm run build`); manual flow works end-to-end: log in as Maria → generate MCP token → run MCP Inspector with the token → 8 tools listed → `list_direct_reports` returns three reports → `get_evidence_summary` for Olek is denied and shows up in the audit log → revoke the token → the server refuses to start.
