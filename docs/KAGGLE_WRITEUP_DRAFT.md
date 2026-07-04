@@ -21,9 +21,10 @@
 
 Engineering managers prepare performance reviews from incomplete memory and
 scattered evidence. Early-year work is forgotten, recent events are over-weighted,
-feedback turns vague, and — increasingly — sensitive employee data (1:1 notes,
-peer feedback) gets pasted straight into an LLM prompt. The result is reviews that are unfair, unsupported, slow to
-write, and a privacy liability.
+feedback turns vague — so managers do the obvious thing and paste a year of 1:1
+notes and peer feedback into a general-purpose chatbot to reconstruct the story,
+putting the team's most sensitive data in an unvetted tool. The result is reviews
+that are unfair, unsupported, slow to write, and a privacy liability.
 
 ReviewOps Agent gives employees a structured place to submit their own success
 evidence, validates that evidence, and grounds every review claim in

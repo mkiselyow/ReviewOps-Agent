@@ -31,13 +31,16 @@ Before recording:
 (Local-stack instructions live in [LOCAL_DEV.md](LOCAL_DEV.md) if you prefer
 recording locally.)
 
-## Scene 0 — The problem & the solution (0:30)
+## Scene 0 — The problem & the solution (0:35)
 
 Narrate over `cover.png`:
 
 > Engineering managers write performance reviews from memory: early-year work
-> is forgotten, recent events dominate, feedback turns vague — and sensitive
-> 1:1 notes end up pasted into public chatbots.
+> is forgotten, recent events dominate, feedback turns vague. So managers do
+> the obvious thing — dump a year of 1:1 notes, peer feedback, and chat
+> threads into ChatGPT or NotebookLM to reconstruct the story. Understandable —
+> and now the team's most sensitive data sits in a tool the company never
+> vetted.
 >
 > ReviewOps fixes the workflow, not just the writing. Employees submit evidence
 > all year, and the annual review draft is computed from every PII-filtered
@@ -173,7 +176,7 @@ Close over `cover.png`:
 
 | Scene | Budget |
 |---|---|
-| 0 Problem & solution | 0:30 |
+| 0 Problem & solution | 0:35 |
 | 1 Architecture & why agents | 0:55 |
 | 2 Login & scope | 0:40 |
 | 3 Questionnaire | 0:50 |
@@ -181,4 +184,4 @@ Close over `cover.png`:
 | 5 Draft + fairness | 0:50 |
 | 6 Approve & export | 0:15 |
 | 7 The build (+ Antigravity) | 0:30 |
-| **Total** | **4:50** |
+| **Total** | **4:55** |
