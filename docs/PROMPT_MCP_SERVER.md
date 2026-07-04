@@ -1,46 +1,46 @@
-# Prompt: expose ReviewOps as an MCP server (token-authenticated)
+# Prompt: expose ReviewOps as an MCP server (mock OAuth 2.1)
 
 > Implementation prompt for a coding agent (written for Google Antigravity).
-> Goal: any MCP client (Gemini CLI, Claude Desktop, MCP Inspector) can query a
-> manager's evidence, questionnaire status, and generate review drafts through
-> ReviewOps' own MCP server — with the app's existing RBAC still enforced in
-> code, and identity derived from a manager-issued access token, never from
-> request input.
+> Goal: any MCP client (MCP Inspector, Claude Desktop, Gemini CLI) can connect
+> to ReviewOps' own MCP endpoint over streamable HTTP, authenticate through a
+> **mock OAuth 2.1 flow** (demo/MVP: sign in as Maria), and query a manager's
+> evidence, questionnaire status, and generate review drafts — with the app's
+> existing RBAC still enforced in code. Real OAuth (a real IdP) is a roadmap
+> item after this lands.
 
 ---
 
 ## The prompt
 
-You are working in the repo `ReviewOps-Agent` (Next.js 16 + TypeScript frontend in `src/`, Python ADK agent service in `agent-service/` — you will NOT touch the Python side). Read `docs/ARCHITECTURE.md` and skim `src/server/services/` and `src/server/auth/` before writing code.
+You are working in the repo `ReviewOpsAgent` (Next.js 16 + TypeScript frontend in `src/`, Python ADK agent service in `agent-service/` — you will NOT touch the Python side). Read `docs/ARCHITECTURE.md` and skim `src/server/services/` and `src/server/auth/` before writing code.
 
-**Context.** ReviewOps grounds performance reviews in consented evidence. The TS app is the security boundary: services in `src/server/services/` take an explicit `managerId` and trust the caller to have enforced permissions first — route handlers gate every call via `requireManager()` plus the pure predicates in `src/server/auth/permissions.ts` and `src/server/auth/rbac.ts`. You will add a second, non-HTTP entry surface: an **MCP server** that exposes read + draft capabilities to MCP clients, replicating exactly the same gating. Two modules are Next.js-bound and MUST NOT be imported by anything you write for the MCP process: `src/server/auth/mockSession.ts` (next/headers) and `src/server/http.ts` (next/server). Everything else in `src/server/` is plain Node and safe to reuse.
+**Context.** ReviewOps grounds performance reviews in consented evidence. The TS app is the security boundary: services in `src/server/services/` take an explicit `managerId` and trust the caller to have enforced permissions first — route handlers gate every call via the predicates in `src/server/auth/permissions.ts` and `src/server/auth/rbac.ts`. You will add a second entry surface: an **MCP server endpoint** inside the Next.js app, protected by a **mock OAuth 2.1 authorization flow**, replicating exactly the same gating. Note: `src/server/auth/mockSession.ts` and `src/server/http.ts` are Next-bound (cookies/NextResponse) — your MCP/OAuth route handlers live in Next, so importing them is allowed where useful, but MCP identity comes from the bearer token, NOT from the session cookie.
 
 **Security invariants (do not violate):**
-- Identity comes from a token in the server's environment, resolved against a stored hash — never from a tool parameter and never trusted from the LLM. (Same rule as survey links: `src/server/utils/crypto.ts` + `survey_assignments.token_hash` store only the SHA-256 hash.)
-- The token value must never appear in tool results, error messages, or logs.
-- Approval and export are deliberately **excluded** from the MCP surface — human-in-the-loop stays in the UI.
+- MCP identity comes only from the OAuth bearer token — never from a tool parameter, never from the LLM, never from the session cookie.
+- **Only `isTestUser` accounts can authenticate via the mock OAuth flow, and only managers can use the MCP surface.** For the MVP the authorize page offers exactly **Maria** (`u_maria`). Enforce `isTestUser && isManager` server-side at token issuance AND again on every MCP request — never expose data of non-test users through this surface (their data is additionally protected by the scope asserts, but gate at auth anyway).
+- Approval and export are deliberately **excluded** from the MCP tool surface — human-in-the-loop stays in the UI.
 - Every scoped call re-asserts permissions with the existing predicates; denials are audited.
+- Stay stateless: no new DB tables. Codes and access tokens are short-lived HMAC-signed payloads (sign with `SESSION_SECRET`, same pattern as the session cookie in `mockSession.ts`).
 
-### Part 1 — MCP access tokens (app side)
+### Part 1 — mock OAuth 2.1 authorization server (inside the Next app)
 
-1. **Schema** (`src/server/db/schema.ts` + `drizzle-kit` migration): new table `mcp_tokens` — `id` (pk), `user_id` (FK → users), `token_hash` (unique, SHA-256 hex), `label` (nullable), `created_at`, `last_used_at` (nullable), `expires_at` (nullable), `revoked` (boolean, default false). Additive only; nothing existing changes.
-2. **Service** (`src/server/services/mcpTokenService.ts`):
-   - `issueToken(userId, label?)` → plaintext `rop_` + base64url(`crypto.randomBytes(32)`); store ONLY the SHA-256 hash; return the plaintext once. Reuse the hashing helper from `src/server/utils/crypto.ts` if suitable.
-   - `resolveToken(plaintext)` → hash → lookup → returns the active `userId` or `null` (rejects revoked/expired; updates `last_used_at`).
-   - `listTokens(userId)` (id, label, created/last-used/expiry, revoked — never hashes), `revokeToken(userId, tokenId)`.
-3. **Routes + UI**: a minimal "MCP access" section on the manager side (dashboard or a small settings page):
-   - Generate (label optional) → show the plaintext ONCE with a copy button and the warning "store it now; we only keep a hash".
-   - List + revoke.
-   - Route handlers gated with `requireManager()` (from `src/server/http.ts` — fine here, this is the Next side); issuance/revocation logged via `logAudit` (`src/server/services/auditService.ts`; extend the `AuditAction` union with e.g. `mcp_token_issued` / `mcp_token_revoked`).
-   - Managers only (`isManager` — demo Maria included, so judges can reproduce the whole flow).
-4. Follow the existing UI style; keep it small — one card/section, no new nav concepts if avoidable.
+Implement the minimal set an MCP client needs (MCP auth spec = OAuth 2.1 authorization-code + PKCE against a discoverable AS):
 
-### Part 2 — the MCP server
+1. **Discovery metadata**:
+   - `/.well-known/oauth-protected-resource` — points at this app as the AS for the `/api/mcp` resource (RFC 9728).
+   - `/.well-known/oauth-authorization-server` — issuer, `authorization_endpoint`, `token_endpoint`, `registration_endpoint`, `code_challenge_methods_supported: ["S256"]`, `grant_types_supported: ["authorization_code"]`.
+2. **`/api/oauth/register`** (Dynamic Client Registration, RFC 7591): accept-all mock — validate `redirect_uris` present, return a generated `client_id` (no secret; public client + PKCE). Stateless: the client_id can be a signed blob embedding the redirect_uris so the authorize endpoint can verify them without storage.
+3. **`/api/oauth/authorize`** (GET): render a minimal demo consent page — "ReviewOps demo sign-in" with a **Continue as Maria (Engineering Manager)** button. Validate `client_id`, `redirect_uri` (must match registration), `state`, `code_challenge` (+ `method=S256`). On click: issue a **code** = HMAC-signed payload `{ userId: "u_maria", clientId, codeChallenge, exp: now+60s }`, redirect to `redirect_uri?code=...&state=...`. Server-side check before issuing: the chosen user exists, `isTestUser === true`, `isManager(userId)` — refuse otherwise.
+4. **`/api/oauth/token`** (POST): `authorization_code` grant. Verify the code's signature + expiry + `code_verifier` against the embedded challenge (S256). Issue an **access token** = HMAC-signed payload `{ userId, exp: now + 1h }`, `token_type: "Bearer"`, `expires_in`. No refresh tokens (MVP).
+5. Put the signing/verification helpers in `src/server/auth/mcpOAuth.ts` with unit-testable pure functions (sign/verify/expiry). Reuse the HMAC approach from `mockSession.ts` (constant-time compare included).
+6. Audit: log a `login` audit entry with `metadata.via = "mcp_oauth"` on successful token issuance.
 
-1. **File** `src/mcp/reviewops-server.ts`, using the official `@modelcontextprotocol/sdk` (add as dependency) with the **stdio** transport. Server name `reviewops`, version from package.json. Add package.json script `"mcp:reviewops": "tsx src/mcp/reviewops-server.ts"` (tsx is already a dependency).
-2. **Startup identity**: read `REVIEWOPS_MCP_TOKEN` from env → `resolveToken` → `isManager(userId)` (from `src/server/services/hrisService.ts`). On any failure: print a clear, token-free message to **stderr** and exit non-zero before serving tools. Cache the acting `managerId` for the process lifetime.
-3. **DB note**: `src/server/db/index.ts` initializes from `DATABASE_URL` (default `file:./data/reviewops.sqlite`, resolved against `process.cwd()`). Document in the README snippet that the MCP client config must set `cwd` to the repo root (or pass an absolute `DATABASE_URL` in env).
-4. **Tools** (zod input schemas — zod is already a dependency; results as JSON in a `text` content block; one-line descriptions written for an MCP client):
+### Part 2 — the MCP endpoint
+
+1. **`/api/mcp`** (streamable HTTP transport, stateless mode — this must run on Vercel serverless). Preferred: Vercel's official **`mcp-handler`** npm package (`createMcpHandler`, and its auth wrapper if it fits) — verify it supports Next 16; otherwise use `@modelcontextprotocol/sdk`'s streamable-HTTP server transport adapted to a route handler. Server name `reviewops`.
+2. **Auth on every request**: extract the `Authorization: Bearer` token, verify signature + expiry, load the user, re-check `isTestUser && isManager`. 401 with the RFC 9728 `WWW-Authenticate` header (pointing at the protected-resource metadata) when missing/invalid — that header is what triggers the client's OAuth flow. The acting `managerId` for all tools is the token's `userId`.
+3. **Tools** (zod input schemas; results as JSON in a `text` content block; one-line descriptions written for an MCP client):
 
 | Tool | Input | Backing calls (in order) |
 |---|---|---|
@@ -51,29 +51,28 @@ You are working in the repo `ReviewOps-Agent` (Next.js 16 + TypeScript frontend 
 | `get_pending_evidence` | — | `getPendingEvidenceForManager(actor)` |
 | `list_review_drafts` | — | `listReviewDraftsByManager(actor)` |
 | `get_review_draft` | `{ draftId }` | `getReviewDraft` → `assertOwnsReviewDraft(actor, draft)` → return |
-| `generate_review_draft` | `{ employeeId, period }` | scope assert as above → the same rate-limit gate the HTTP route uses (`src/server/rateLimit.ts`) → `orchestrateReviewGeneration(actor, employeeId, period)` (`src/server/agents/orchestrator.ts`) |
+| `generate_review_draft` | `{ employeeId, period }` | scope assert as above → the same rate-limit gate the HTTP routes use (`src/server/rateLimit.ts`) → `orchestrateReviewGeneration(actor, employeeId, period)` (`src/server/agents/orchestrator.ts`) |
 
-5. **Error handling**: catch `PermissionError` / `NotFoundError` (from `src/server/auth/permissions.ts`) and return them as MCP tool errors (`isError: true`) with the message only — never a stack, never env. Audit denials: `logAudit({ actorId: actor, action: "access_denied", metadata: { via: "mcp", tool } })`. Audit successful `generate_review_draft` as `review_draft_generated` with `metadata.via = "mcp"`.
-6. **`generate_review_draft` dependency**: it calls the Python agent service via `src/server/agentClient.ts`, so `AGENT_SERVICE_URL` (and `AGENT_SHARED_SECRET` if the target sets one) must be present in the MCP server env. If unset, return a tool error explaining that, don't crash.
+4. **Error handling**: catch `PermissionError` / `NotFoundError` (from `src/server/auth/permissions.ts`) and return them as MCP tool errors (`isError: true`) with the message only — never a stack, never the token. Audit denials: `logAudit({ actorId: actor, action: "access_denied", metadata: { via: "mcp", tool } })`. Audit successful `generate_review_draft` as `review_draft_generated` with `metadata.via = "mcp"`.
+5. **`generate_review_draft` dependency**: it calls the Python agent service via `src/server/agentClient.ts` (`AGENT_SERVICE_URL`, already configured locally and on Vercel). If unset, return a tool error explaining that; don't crash. Mind that Vercel Hobby caps the route at 60s — a normal draft (~10s) fits.
 
 ### Part 3 — tests
 
-`tests/mcp-reviewops.test.ts` (vitest, alongside the existing 13 suites):
-- Setup: temp sqlite via `DATABASE_URL`, schema push or programmatic migration consistent with how existing tests build the DB (check `tests/` setup helpers first and reuse them), `seedDatabase()` from `src/server/db/seed.ts`, then `issueToken("u_maria")`.
-- Spawn the real server via the SDK `Client` + `StdioClientTransport` (command: tsx; make it **Windows-safe** — this repo is developed on Windows; prefer spawning `process.execPath` with tsx's CLI entry or verify `npx --no-install tsx` works) passing `REVIEWOPS_MCP_TOKEN` + `DATABASE_URL` in the child env.
-- Assert: `list_direct_reports` returns exactly Anna/Mark/Julia (`u_anna`, `u_mark`, `u_julia`); `get_evidence_summary` for `u_olek` returns a tool error AND writes an `access_denied` audit row; `get_evidence_summary` for `u_anna` deep-equals a direct `getEmployeeEvidence("u_maria","u_anna")` call; a revoked token makes the server exit non-zero at startup.
-- `afterAll`: close the transport, no orphaned child processes.
-- Unit tests for `mcpTokenService`: only hashes stored, resolve→null after revoke and after expiry.
-- Do NOT call `generate_review_draft` in tests (needs live Gemini) — it is verified manually.
+Add alongside the existing 13 vitest suites (check `tests/` setup helpers and reuse their DB bootstrapping):
+- `mcpOAuth` unit tests: sign/verify round-trip; expired code rejected; wrong `code_verifier` rejected (S256); token expiry enforced; tampered signature rejected.
+- Auth-gate tests: a token for a non-`isTestUser` user (craft one directly with the signing helper) is rejected by the MCP endpoint; a non-manager test user is rejected; missing bearer → 401 with `WWW-Authenticate`.
+- Tool tests: invoke the route handler (or handler-level functions) with a valid Maria token on a seeded in-memory/temp DB — `list_direct_reports` returns exactly `u_anna`, `u_mark`, `u_julia`; `get_evidence_summary` for `u_olek` → tool error + an `access_denied` audit row; `get_evidence_summary` for `u_anna` deep-equals a direct `getEmployeeEvidence("u_maria","u_anna")` call.
+- Do NOT call `generate_review_draft` in tests (needs live Gemini) — manual verification.
 - Definition of green: `npm test` (all suites), `npm run typecheck`, `npm run build`.
 
 ### Part 4 — docs (keep them honest, mind the writeup word budget)
 
-- `README.md`: a short **"Use it from any MCP client"** subsection: issue a token in the UI as Maria → client config snippet (command `npm run mcp:reviewops`, `cwd` = repo root, env `REVIEWOPS_MCP_TOKEN`, optional `AGENT_SERVICE_URL`) → `npx @modelcontextprotocol/inspector npm run mcp:reviewops` for interactive inspection. Update the "Kaggle capstone concepts demonstrated" line: "mock MCP/connector boundary" → "MCP server exposing the app's tools (token-authenticated)". Extend the Security-model token bullet to mention MCP tokens (hash-only, revocable, identity never from request input).
-- `docs/ARCHITECTURE.md`: new subsection — the MCP surface, the token identity model, why approve/export are excluded (HITL), and the **production path**: OAuth 2.1 over the streamable-HTTP transport, mapping the verified email to a user via `getUserByEmail`.
+- `README.md`: a short **"Use it from any MCP client"** subsection: connect MCP Inspector (`npx @modelcontextprotocol/inspector`) to `http://localhost:3000/api/mcp` (or the live `https://reviewops-agent.vercel.app/api/mcp`), complete the OAuth popup as Maria, call tools. Update the "Kaggle capstone concepts demonstrated" line: "mock MCP/connector boundary" → "MCP server (streamable HTTP + OAuth 2.1 flow) exposing the app's tools". Note in the Security model that MCP identity comes from the OAuth token, demo-gated to `isTestUser` managers.
+- `docs/ARCHITECTURE.md`: new subsection — the MCP surface, the mock OAuth 2.1 design (PKCE, stateless signed codes/tokens, `isTestUser` gate), why approve/export are excluded (HITL), and the **production path: replace the mock AS with a real IdP/SSO** (verified email → `getUserByEmail`).
+- `docs/ROADMAP.md`: add a post-MCP item — "Real OAuth 2.1 / SSO for the MCP surface (replace the mock authorization server with a real IdP; per-user consent screens; refresh tokens)".
 - `docs/KAGGLE_WRITEUP_DRAFT.md`: update the MCP row in the "Capstone key concepts" table and the "mock MCP/connector boundary" phrase in "Why this is an agent, not a chatbot". The writeup is ~1,900 of a hard 2,500-word limit — keep edits roughly word-neutral.
-- `docs/DEMO_SCRIPT.md`: add an optional ~30s beat in the build scene: generate the token as Maria on camera, paste into MCP Inspector, call `list_direct_reports` then `get_evidence_summary` for Anna.
+- `docs/DEMO_SCRIPT.md`: add an optional ~30s beat in the build scene: connect MCP Inspector to the live URL on camera, OAuth "Continue as Maria", call `list_direct_reports` then `get_evidence_summary` for Anna.
 
-**Ground rules:** no API keys or secrets committed; comment the non-obvious decisions in code (identity from config not request, HITL exclusions, hash-only storage, why stdio); match existing code style (typed, zod-validated, small modules); don't modify `agent-service/`; existing app behavior unchanged (everything is additive).
+**Ground rules:** no API keys or secrets committed (`SESSION_SECRET` stays env-only); comment the non-obvious decisions in code (identity from bearer not session/params, `isTestUser` gate rationale, HITL exclusions, stateless signed tokens); match existing code style (typed, zod-validated, small modules); don't modify `agent-service/`; existing app behavior unchanged (everything is additive).
 
-**Definition of done:** all green (`npm test`, `npm run typecheck`, `npm run build`); manual flow works end-to-end: log in as Maria → generate MCP token → run MCP Inspector with the token → 8 tools listed → `list_direct_reports` returns three reports → `get_evidence_summary` for Olek is denied and shows up in the audit log → revoke the token → the server refuses to start.
+**Definition of done:** all green (`npm test`, `npm run typecheck`, `npm run build`); manual flow works end-to-end: MCP Inspector → connect to `/api/mcp` → 401 triggers OAuth → register/authorize → "Continue as Maria" → 8 tools listed → `list_direct_reports` returns three reports → `get_evidence_summary` for Olek is denied and shows up in the audit log → a hand-crafted token for a non-test user is rejected. Stretch: repeat the same flow against the deployed Vercel URL.
