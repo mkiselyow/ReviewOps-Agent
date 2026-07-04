@@ -112,7 +112,7 @@ Build a working MVP where:
 - Real email delivery.
 - Real SSO.
 - Real compensation or promotion workflow.
-- Automatic HR decisions.
+- Automatic performance or compensation decisions.
 - Raw Slack history ingestion.
 - Raw meeting transcript ingestion.
 - Automatic external actions without manager approval.
@@ -264,7 +264,7 @@ Sample goals:
 1. As an outside manager, I cannot access employees outside my team.
 2. As an employee, I cannot access another employee's questionnaire response.
 3. As an expired token holder, I cannot submit a response.
-4. As the system, I do not send raw HR data to the AI model.
+4. As the system, I do not send raw employee data to the AI model.
 5. As the system, I minimize and sanitize data before model calls.
 6. As the system, I keep an audit log of sensitive actions.
 

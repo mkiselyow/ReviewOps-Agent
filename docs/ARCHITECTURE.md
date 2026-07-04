@@ -316,9 +316,9 @@ draft (ids like `peer:…`, `fb:…`, `1on1:…`).
 > review draft is saved. They pass the same **deterministic PII filter** as
 > internal evidence, and peer reviews are **reviewer-anonymized** (only the
 > comment is passed, never the reviewer's identity). The employee
-> `allow_for_review` consent gate governs **self-submitted** evidence; manager/
-> HR-owned records (1:1 notes, collected peer reviews) are not employee-gated, by
-> design — the manager already legitimately has them.
+> `allow_for_review` consent gate governs **self-submitted** evidence;
+> manager/company-owned records (1:1 notes, collected peer reviews) are not
+> employee-gated, by design — the manager already legitimately has them.
 
 ### 3.2 Data layer & deployment
 

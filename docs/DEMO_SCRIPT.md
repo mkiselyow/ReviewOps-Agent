@@ -31,18 +31,28 @@ Before recording:
 (Local-stack instructions live in [LOCAL_DEV.md](LOCAL_DEV.md) if you prefer
 recording locally.)
 
-## Scene 0 — The problem & why agents (0:30)
+## Scene 0 — The problem, the solution, why agents (0:40)
 
 Narrate over `cover.png`:
 
 > Engineering managers write performance reviews from memory: early-year work
-> is forgotten, recent events dominate, feedback turns vague — and more and
-> more, sensitive HR notes get pasted straight into a public chatbot.
-> ReviewOps Agent fixes the workflow, not just the writing: employees submit
-> evidence all year, agents validate and structure it, and review drafts are
-> grounded in evidence the employee approved. Agents fit because this is a
-> multi-step judgment task — generate, validate, follow up, check fairness —
-> not a single completion.
+> is forgotten, recent events dominate, feedback turns vague — and sensitive
+> 1:1 notes end up pasted into public chatbots.
+>
+> ReviewOps fixes the workflow, not just the writing. Employees submit evidence
+> all year; the draft is computed from every PII-filtered source — self-
+> assessment, peer reviews, feedback, 1:1 notes — every claim cites evidence,
+> and every role expectation is rated, with gaps called out and turned into
+> requests for more information. The decision stays with the manager —
+> ReviewOps reinforces it with evidence.
+>
+> Why agents, not one big prompt? Because this is a chain of distinct judgment
+> steps: build a questionnaire from the manager's structure, safety-check it,
+> score each answer and ask a follow-up when it's weak, draft against the role
+> matrix, then audit the draft for fairness. Each step is a separate agent or a
+> deterministic check — so each can be tested, evaluated, and trusted on its
+> own. A single completion can't ask a follow-up question or veto its own
+> output.
 
 ## Scene 1 — Architecture (0:45)
 
@@ -160,7 +170,7 @@ Close over `cover.png`:
 
 | Scene | Budget |
 |---|---|
-| 0 Problem & why agents | 0:30 |
+| 0 Problem, solution, why agents | 0:40 |
 | 1 Architecture | 0:45 |
 | 2 Login & scope | 0:40 |
 | 3 Questionnaire | 0:50 |
@@ -168,4 +178,4 @@ Close over `cover.png`:
 | 5 Draft + fairness | 0:50 |
 | 6 Approve & export | 0:15 |
 | 7 The build (+ Antigravity) | 0:30 |
-| **Total** | **4:40** |
+| **Total** | **4:50** |

@@ -4,7 +4,7 @@ A permission-aware, evidence-grounded assistant for engineering managers. It
 helps managers generate targeted questionnaires for their direct reports,
 collect employee-approved success evidence, validate evidence quality, and
 generate interim or annual review drafts — always with human approval and never
-sending raw HR data to the model.
+sending raw employee data to the model.
 
 > Kaggle AI Agents capstone — track: **Agents for Business**. All data is synthetic.
 >
@@ -30,8 +30,10 @@ chatbot.
 ReviewOps Agent gives employees a structured place to submit their own success
 evidence all year, validates that evidence with an agent (asking follow-ups
 when answers are vague), and grounds every claim in a manager's review draft in
-evidence the employee approved — without making any HR decision automatically,
-and without ever sending raw HR data to the model.
+evidence the employee approved. The decisions themselves — performance
+assessment, compensation input, areas to develop — stay with the manager;
+ReviewOps reinforces them with evidence, never makes them, and never sends raw
+employee data to the model.
 
 The review draft itself is computed from **every PII-filtered source
 available** — the employee's self-assessment (survey answers and standalone
@@ -268,5 +270,6 @@ evaluation framework (`agents-cli eval`, LLM-as-judge, trajectory) · observabil
 ## Ethical positioning
 
 ReviewOps Agent does **not** evaluate, rank, promote, or penalize employees
-automatically. It helps managers collect and organize evidence and draft better,
-fairer, evidence-grounded reviews — with the manager always in control.
+automatically, and does not decide compensation. It supports and reinforces the
+manager's own decisions — performance assessment, compensation input, areas to
+develop — with organized, consented evidence; the manager is always in control.

@@ -289,8 +289,8 @@ Security criteria:
 - no cross-manager data access;
 - privacy filter before model calls;
 - audit log for sensitive actions;
-- no real HR data in demo;
-- no automatic HR decisions.
+- no real employee data in demo;
+- no automatic performance or compensation decisions.
 
 ## 6. Capstone Concepts Demonstrated
 

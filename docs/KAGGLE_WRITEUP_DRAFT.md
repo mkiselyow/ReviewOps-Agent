@@ -21,14 +21,16 @@
 
 Engineering managers prepare performance reviews from incomplete memory and
 scattered evidence. Early-year work is forgotten, recent events are over-weighted,
-feedback turns vague, and — increasingly — sensitive HR data gets pasted straight
-into an LLM prompt. The result is reviews that are unfair, unsupported, slow to
+feedback turns vague, and — increasingly — sensitive employee data (1:1 notes,
+peer feedback) gets pasted straight into an LLM prompt. The result is reviews that are unfair, unsupported, slow to
 write, and a privacy liability.
 
 ReviewOps Agent gives employees a structured place to submit their own success
 evidence, validates that evidence, and grounds every review claim in
-employee-approved evidence — **without making any HR decision automatically, and
-without ever sending raw HR data to the model.**
+employee-approved evidence. The decisions — performance assessment, compensation
+input, areas to develop — **stay with the manager: ReviewOps reinforces them
+with evidence, never makes them, and never sends raw employee data to the
+model.**
 
 The business cost is concrete. A manager with six reports spends hours per
 review reconstructing a year from memory — days of management time every cycle,
@@ -41,7 +43,8 @@ the liability.
 
 ## The one idea
 
-Most "AI for HR" demos put the LLM in the middle and hope it behaves. ReviewOps
+Most "AI for performance reviews" demos put the LLM in the middle and hope it
+behaves. ReviewOps
 inverts that: **access control, consent, and PII minimization run in the
 TypeScript application _before_ the agent is ever called.** The LLM is never the
 authorization boundary. A manager can only ever see their own direct reports;
@@ -239,7 +242,7 @@ dual-driver: better-sqlite3 locally, Turso in prod). Full reproduction in
 Mock login (no real SSO), mock HRIS, mock outbox, and mock BambooHR/Lattice
 connectors behind typed contracts. Single-manager direct-report scope (no
 skip-level / HR-admin flows). PII redaction is pattern-based and demonstrative.
-Synthetic data only; not a production HR system.
+Synthetic data only; not a production performance-management system.
 
 ## Future work
 

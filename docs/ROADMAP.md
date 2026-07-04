@@ -26,7 +26,7 @@ The MVP uses synthetic data and local tools.
 - Real Slack delivery.
 - Real Lattice/BambooHR integration.
 - Real SSO.
-- Real HR data.
+- Real employee data.
 - Compensation decisions.
 - Promotion decisions.
 - Employee ranking.
