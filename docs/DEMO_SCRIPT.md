@@ -10,7 +10,7 @@ agent for engineering managers.
 scene against the time budget below; cut the optional beats first if over.
 
 Rubric bullets this script covers: problem statement → solution →
-architecture + why agents (over the workflow diagrams) → demo → the build.
+architecture + why agents (over the workflow diagrams) → demo.
 
 ## Setup
 
@@ -25,9 +25,6 @@ Before recording:
 2. Have these images ready to show full-screen:
    `diagrams/cover.png`, `diagrams/architecture-detailed.svg`,
    `diagrams/agent-workflows.svg`, `diagrams/deploy-topology.svg`.
-3. Optional (build scene): Antigravity IDE open on the repo with your real
-   task history visible.
-
 (Local-stack instructions live in [LOCAL_DEV.md](LOCAL_DEV.md) if you prefer
 recording locally.)
 
@@ -154,27 +151,9 @@ Say aloud:
 > The last step is mine, not the model's. I approve and I export. And every
 > sensitive action is in the audit log. Even the denied ones.
 
-## Scene 7 — The build (0:30)
+## Closing (0:10)
 
-Screen: repo README or split of `agent-service/app/` + eval results.
-
-> The build: three ADK graph workflows, all with typed input and output. The
-> review agent loads a skill through SkillToolset. I grade the agents with
-> agents-cli eval. An LLM judge scores them on golden datasets. That loop
-> caught a real safety gap. Requests about protected topics were quietly
-> replaced and marked approved. I added a hard-refuse path. That case went
-> from one out of five to five out of five. And sixty-seven tests cover the
-> security stories.
-
-**Antigravity beat (15–20s, only if you can show real usage):** switch to the
-Antigravity IDE with the project open and your genuine task history visible:
-
-> Parts of this project were built with Google Antigravity. Here is the real
-> task history.
-
-Keep the claim proportional to real usage; do not overclaim.
-
-Close over `cover.png`:
+Narrate over `cover.png`:
 
 > ReviewOps: earn the trust in code, then use the model. The live demo and the
 > repo are linked below.
@@ -198,5 +177,5 @@ Close over `cover.png`:
 | 4 Evidence weak→strong | 0:40 |
 | 5 Draft + fairness | 0:50 |
 | 6 Approve & export | 0:15 |
-| 7 The build (+ Antigravity) | 0:30 |
-| **Total** | **4:50** |
+| Closing | 0:10 |
+| **Total** | **4:20** |
