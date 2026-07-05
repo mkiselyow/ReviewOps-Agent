@@ -134,15 +134,16 @@ On screen:
 
 Say aloud (over generation):
 
-> Now the main part. The app collects everything it is allowed to use.
-> Anna's approved self-assessment. Peer reviews, feedback, and my 1:1 notes
-> from the mock HR connector. Her goals. The expectations for her role. All
-> of it passes the privacy filter first. Then the draft agent writes the
-> review. It loads a drafting skill for this. Every claim must cite an
-> evidence id. Every role expectation gets a rating. See these gaps? No
-> evidence means no guess. They become requests for more information. And a
-> fairness check runs before I even see the draft. Here it flagged an
-> unsupported claim and suggested a fix.
+> Now the main part: the annual review. The app collects everything it may
+> use. Anna's approved self-assessment. The annual peer feedback and my 1:1
+> notes. Today that data is mocked. In production it comes from Lattice or
+> BambooHR, through the same connector. Plus her goals and her role
+> expectations. All of it passes the privacy filter first. Then the draft
+> agent writes the review. It loads a drafting skill for this. Every claim
+> must cite an evidence id. Every role expectation gets a rating. See these
+> gaps? No evidence means no guess. They become requests for more
+> information. And a fairness check runs before I even see the draft. Here it
+> flagged an unsupported claim and suggested a fix.
 
 ## Scene 6 — Approve and export (0:15)
 
