@@ -82,63 +82,83 @@ Switch to `deploy-topology.svg`:
 > Access control is enforced in code before data reaches the agent. The model
 > never sees data the current user isn't allowed to see.
 
-## Scene 3 — Generate a questionnaire (0:50)
+## Scene 3 — Generate a one-question survey (0:45)
 
+**Keep the survey to ONE question** — the demo's point is the agents working
+at each step, not form-filling.
+
+On screen:
 1. `Create questionnaire` → topic:
-   `Create a Q2 collaboration and ownership evidence survey for my direct reports. I want concrete examples, impact, and supporting artifacts.`
+   `One question only: ask each direct report for their single most impactful contribution this quarter — a concrete example, its impact, and a supporting link.`
    → period `2026-Q2` → submit.
-2. Show the generated questionnaire and the Safety Agent verdict.
-3. **(Optional — only if under budget.)** Paste a skill list + L1–L5 scale in
-   the notes of a second questionnaire; show the per-skill matrix with one
-   shared rating legend. This is the most impressive beat but also the
-   slowest — the writeup covers it either way.
-4. `Refine & regenerate` with one line of feedback, then approve. Show the
-   outbox for ~10 seconds: personal token links minted per report, one token =
-   one assignment. Copy Anna's link.
+2. When the preview appears, point at the single question + the Safety Agent
+   verdict, then approve. Show the outbox (~5s), copy Anna's link.
 
-> The manager describes the survey; the agent builds it, a safety agent
-> reviews it, and nothing is sent until the manager approves.
+Say aloud (over the generation spinner and preview):
 
-## Scene 4 — Employee evidence: weak → strong (0:40)
+> While this spins, three things are happening. The TypeScript app checked my
+> permissions and called the Python agent service. There, the questionnaire
+> agent turned my one-line intent into a structured plan; a separate safety
+> agent reviewed it for sensitive or leading questions — its verdict is
+> printed right here; and deterministic code, not the model, expanded the plan
+> into the final form. Nothing is sent yet — I approve, and only then are
+> personal token links minted; the server stores only a hash of each token.
 
-1. Open Anna's link in a second tab. Submit the weak answer:
-   `I helped with frontend.`
-2. Show the Evidence Validator's follow-up asking for a concrete example.
-3. Submit the improved answer:
+## Scene 4 — Employee answers: weak → strong (0:40)
+
+On screen:
+1. Open Anna's link in a second tab. Answer the single question weakly:
+   `I helped with frontend.` → submit.
+2. The follow-up question appears. Answer it properly:
    `I refactored the shared tooltip component and helped Mark integrate it in the billing screen. This reduced duplicated UI logic and closed two layout bugs. Evidence: PR-123 and BUG-45.`
-4. Show the resulting evidence card: summary, impact, mapped value, quality
+3. Show the resulting evidence card: summary, impact, mapped value, quality
    score, evidence ID.
 
-> The agent raises evidence quality before it ever reaches the manager — and
-> weak evidence is never silently stored. (One sentence, no demo: employees
-> can also add standalone evidence; low-confidence items go to the manager's
-> review queue instead of auto-approving.)
+Say aloud:
+
+> The link identifies Anna from the token — no login, no way to reach anyone
+> else's survey. Behind this submit button, the evidence workflow runs: a
+> security node redacts PII and strips prompt-injection attempts before the
+> model sees anything; then the validator agent scores the answer — this one
+> is too vague, so instead of storing it, it asks Anna for a concrete example.
+> The improved answer scores high enough that deterministic routing
+> auto-approves it into an evidence card, mapped to a company value. Weak
+> answers below the confidence bar would land in Maria's review queue instead —
+> nothing is ever silently stored.
 
 ## Scene 5 — Review draft + fairness check (0:50)
 
-1. Back as Maria: open the results view (response status, strong/weak counts,
-   mapped values), then pick Anna.
-2. Show **Evidence on file**, generate the `2026-Q2` draft. Note it is
-   grounded in consent-gated self-evidence **plus connector signals** (peer
-   reviews, feedback, 1:1 notes fetched transiently from the mock
-   BambooHR/Lattice connector), cited as `[ev_…]` and `[peer:…]`.
-3. Scroll to **Role-Expectation Coverage**: every expectation of Anna's role is
-   rated (`at level` / `above level` / `developing toward level` /
-   `not yet evidenced`), and the **Requests for More Information** section lists
-   what to collect for the un-evidenced ones.
-4. Show the Fairness & Grounding warnings — e.g. an unsupported-claim warning
-   with a suggested evidence-backed replacement.
+On screen:
+1. Back as Maria: open results for the survey, then Anna's **review prep** —
+   show **Evidence on file**.
+2. Generate the `2026-Q2` draft. While it generates, keep talking (below).
+3. When it renders: point at citations (`[ev_…]`, `[peer:…]`), scroll to
+   **Role-Expectation Coverage** (each expectation rated `at level` /
+   `above level` / `developing toward level` / `not yet evidenced`), then
+   **Requests for More Information**, then the Fairness & Grounding warnings.
 
-> The draft is computed from every PII-filtered source — self-assessment, peer
-> reviews, feedback, 1:1 notes — and calibrated against the role matrix.
-> Nothing without evidence is assumed: the draft asks for what's missing. And a
-> second agent reviews the review before the manager ever approves it.
+Say aloud (over generation):
+
+> Now the real payoff. The app is assembling everything it's allowed to use:
+> Anna's consented self-assessment, and — fetched transiently from the mock
+> BambooHR-and-Lattice connector — peer reviews, feedback, and my 1:1 notes,
+> plus her goals and the role expectations for her level. All of it passes a
+> deterministic privacy filter before the agent sees a word. The draft agent —
+> which loads a performance-review drafting skill — must cite an evidence id
+> for every claim and rate every single role expectation. Look: the ones with
+> no evidence anywhere aren't assumed — they're listed as requests for more
+> information. And before I ever see it, a deterministic fairness check flagged
+> this unsupported claim and suggested an evidence-backed replacement.
 
 ## Scene 6 — Approve and export (0:15)
 
-Approve the draft, export the Markdown, flash the exported file.
+On screen: approve the draft, export the Markdown, flash the exported file.
 
-> The final action is human-approved and auditable.
+Say aloud:
+
+> And the last step is mine, not the model's. Approval and export are human
+> actions, and every sensitive step we just took — including anything denied —
+> is in the audit log.
 
 ## Scene 7 — The build (0:30)
 
@@ -179,9 +199,9 @@ Close over `cover.png`:
 | 0 Problem & solution | 0:35 |
 | 1 Architecture & why agents | 0:55 |
 | 2 Login & scope | 0:40 |
-| 3 Questionnaire | 0:50 |
+| 3 One-question survey | 0:45 |
 | 4 Evidence weak→strong | 0:40 |
 | 5 Draft + fairness | 0:50 |
 | 6 Approve & export | 0:15 |
 | 7 The build (+ Antigravity) | 0:30 |
-| **Total** | **4:55** |
+| **Total** | **4:50** |
