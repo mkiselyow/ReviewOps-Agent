@@ -351,7 +351,7 @@ SA, never in the image or the repo.
 
 ## 4. Frameworks applied
 
-### 4.1 Security — 7-Pillar mapping (FILE1)
+### 4.1 Security — 7-Pillar mapping (from the *Vibe Coding Agent Security and Evaluation* whitepaper, Google 2026)
 
 | Pillar | ReviewOps today | Roadmap |
 | --- | --- | --- |
@@ -385,7 +385,7 @@ adds three layers:
   deliberately *not* relied on — it's browser-only and useless against direct
   HTTP clients.)
 
-### 4.2 Evaluation (FILE1 dimensions × methods)
+### 4.2 Evaluation (the same whitepaper's dimensions × methods)
 
 Relevant dimensions for ReviewOps (structured-output agents, not code-gen):
 **intent satisfaction** (does the questionnaire/review match the request),
@@ -407,19 +407,21 @@ Golden datasets exist for **all three workflows** under
 A no-GCP `tests/eval/structural_smoke.py` covers deterministic structural checks
 against the live REST service in the meantime.
 
-### 4.3 Observability (FILE1)
+### 4.3 Observability (same whitepaper)
 
 ADK 2.0 + Agent Engine emit OpenTelemetry spans (`agent.session`, `agent.think`,
 `agent.tool`) → **Cloud Trace**. The scaffolded service already wires
 `setup_telemetry()`. We trace the per-request "trajectory", measure token cost,
 and use tail-based sampling (keep error/high-correction traces).
 
-### 4.4 Skills (FILE2)
+### 4.4 Skills (from the *Agent Skills* whitepaper, Google 2026)
 
 Agents load **Skills** (folder + `SKILL.md` + scripts/references/assets,
-progressive disclosure) via ADK **`SkillToolset`**. Candidate ReviewOps skills:
-`drafting-performance-reviews`, `validating-evidence`,
-`generating-evidence-surveys`, `fairness-grounding-check`. Each follows
+progressive disclosure) via ADK **`SkillToolset`**. **Implemented:**
+`drafting-performance-reviews` (`SKILL.md` + grounding rules + 3 eval cases,
+loaded by `review_draft_agent` via `SkillToolset`). **Candidates:**
+`validating-evidence`, `generating-evidence-surveys`,
+`fairness-grounding-check`. Each follows
 **EDD** (3 JSON eval cases before the SKILL.md), a sharp `description` (trigger +
 when-NOT), and the eval-coverage checklist (trigger / execution / regression /
 token-budget). Skills compose with MCP (know-how vs reach), and deterministic

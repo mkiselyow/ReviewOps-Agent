@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 540" role="img" aria-labelledby="t d" font-family="'Segoe UI',system-ui,-apple-system,sans-serif">
   <title id="t">ReviewOps Agent — the three ADK 2.0 agent workflows</title>
-  <desc id="d">Questionnaire workflow (agent, capture, safety verdict, deterministic expand). Evidence workflow (security PII node, validator, confidence-gated finalize routing to auto-approve or manager review). Review workflow (privacy node, draft agent, deterministic fairness/grounding node).</desc>
+  <desc id="d">Questionnaire workflow (agent, capture, safety verdict, deterministic expand). Evidence workflow (security PII node, validator, confidence-gated finalize routing to auto-approve or manager review). Review workflow (privacy node, draft agent loading the drafting-performance-reviews skill via SkillToolset, deterministic fairness/grounding node).</desc>
   <defs>
     <marker id="a" markerWidth="9" markerHeight="8" refX="7.5" refY="3" orient="auto"><path d="M0 0 L7.5 3 L0 6 Z" fill="#8aa0c4"/></marker>
     <style>
@@ -72,6 +72,7 @@
   <line x1="352" y1="431" x2="378" y2="431" stroke="#8aa0c4" marker-end="url(#a)"/>
   <line x1="530" y1="431" x2="556" y2="431" stroke="#8aa0c4" marker-end="url(#a)"/>
   <line x1="688" y1="431" x2="714" y2="431" stroke="#8aa0c4" marker-end="url(#a)"/>
+  <text x="455" y="474" text-anchor="middle" class="sm" fill="#b98bff">⚙ loads skill: drafting-performance-reviews (SkillToolset)</text>
 
   <text x="40" y="512" class="sm">Blue = LLM agent · slate = deterministic node · green = terminal output · amber = human-review branch.  Every review claim cites an evidence id; no fabrication; calibrated to the role matrix.</text>
 </svg>
