@@ -35,42 +35,40 @@ recording locally.)
 
 Narrate over `cover.png`:
 
-> Engineering managers write performance reviews from memory: early-year work
-> is forgotten, recent events dominate, feedback turns vague. So managers do
-> the obvious thing — dump a year of 1:1 notes, peer feedback, and chat
-> threads into ChatGPT or NotebookLM to reconstruct the story. Understandable —
-> and now the team's most sensitive data sits in a tool the company never
-> vetted.
+> Managers write performance reviews from memory. Early work is forgotten.
+> Recent events get too much weight. Feedback turns vague. So managers do the
+> obvious thing. They paste a year of 1:1 notes and feedback into ChatGPT or
+> NotebookLM. Understandable. But now sensitive team data sits in a tool the
+> company never approved.
 >
-> ReviewOps fixes the workflow, not just the writing. Employees submit evidence
-> all year, and the annual review draft is computed from every PII-filtered
-> source available — self-assessment, peer reviews, feedback, 1:1 notes.
-> Every claim cites evidence, every role expectation is rated, and gaps become
-> requests for more information instead of assumed strengths. The decision
-> stays with the manager — ReviewOps reinforces it with evidence.
+> ReviewOps fixes the workflow itself. Employees submit evidence all year.
+> The review draft uses every allowed source: self-assessment, peer reviews,
+> feedback, 1:1 notes. All of it is PII-filtered first. Every claim cites
+> evidence. Every role expectation gets a rating. Missing evidence becomes a
+> request, not a guess. And the decision stays with the manager. ReviewOps
+> backs it with evidence.
 
 ## Scene 1 — Architecture & why agents (0:55)
 
 Show `architecture-detailed.svg`:
 
-> The design is a hybrid. The TypeScript app is the security boundary — access
-> control, consent, and PII minimization run in code before the agent is ever
-> called. The Python service is the agent brain.
+> The design has two parts. The TypeScript app is the security boundary.
+> Access control, consent, and PII filtering run in code. Only then is the
+> agent called. The Python service is the agent brain.
 
 Switch to `agent-workflows.svg` (the three workflow graphs on screen):
 
-> And this is why it's agents, not one big prompt. The work is a chain of
-> distinct judgment steps — build a questionnaire from the manager's structure,
-> safety-check it, score each employee answer and ask a follow-up when it's
-> weak, draft the review against the role matrix, then audit that draft for
-> fairness. Each box you see is a separate agent or a deterministic check, so
-> each can be tested and evaluated on its own. A single chat completion can't
-> ask a follow-up question or veto its own output.
+> And this is why agents, not one big prompt. The work is a chain of steps.
+> Build the questionnaire. Safety-check it. Score each answer. Ask a follow-up
+> when an answer is weak. Draft the review against the role matrix. Then check
+> the draft for fairness. Each box here is a separate agent or a code check.
+> So each step can be tested on its own. A single chat completion can't ask a
+> follow-up. And it can't veto its own output.
 
 Switch to `deploy-topology.svg`:
 
-> And it's deployed for real: Next.js on Vercel, the agent service on Cloud Run
-> in Vertex mode, Turso as the database — that's the app you're about to see.
+> And it runs live. Next.js on Vercel. The agent service on Cloud Run. Turso
+> as the database. This is the app you are about to see.
 
 ## Scene 2 — Login and manager scope (0:40)
 
@@ -79,8 +77,8 @@ Switch to `deploy-topology.svg`:
    he's on another team.
 3. Optional: hit Olek's URL directly → `403 Access Denied`.
 
-> Access control is enforced in code before data reaches the agent. The model
-> never sees data the current user isn't allowed to see.
+> Permissions are checked in code, before the agent. The model never sees data
+> this user is not allowed to see.
 
 ## Scene 3 — Generate a one-question survey (0:45)
 
@@ -96,13 +94,12 @@ On screen:
 
 Say aloud (over the generation spinner and preview):
 
-> While this spins, three things are happening. The TypeScript app checked my
-> permissions and called the Python agent service. There, the questionnaire
-> agent turned my one-line intent into a structured plan; a separate safety
-> agent reviewed it for sensitive or leading questions — its verdict is
-> printed right here; and deterministic code, not the model, expanded the plan
-> into the final form. Nothing is sent yet — I approve, and only then are
-> personal token links minted; the server stores only a hash of each token.
+> While this spins, three things happen. The app checks my permissions and
+> calls the agent service. The questionnaire agent turns my request into a
+> plan. A separate safety agent reviews the questions. Its verdict shows right
+> here. Then plain code, not the model, builds the final form. Nothing is sent
+> yet. I approve first. Only then are the personal links created. The server
+> stores only a hash of each token.
 
 ## Scene 4 — Employee answers: weak → strong (0:40)
 
@@ -116,15 +113,13 @@ On screen:
 
 Say aloud:
 
-> The link identifies Anna from the token — no login, no way to reach anyone
-> else's survey. Behind this submit button, the evidence workflow runs: a
-> security node redacts PII and strips prompt-injection attempts before the
-> model sees anything; then the validator agent scores the answer — this one
-> is too vague, so instead of storing it, it asks Anna for a concrete example.
-> The improved answer scores high enough that deterministic routing
-> auto-approves it into an evidence card, mapped to a company value. Weak
-> answers below the confidence bar would land in Maria's review queue instead —
-> nothing is ever silently stored.
+> The link knows it's Anna from the token. No login. No way to open anyone
+> else's survey. On submit, the evidence workflow runs. A security node
+> removes PII and blocks prompt injection first. Then the validator agent
+> scores the answer. This one is too vague. So it is not stored. Anna gets a
+> follow-up question instead. Her better answer scores high. It becomes an
+> evidence card, mapped to a company value. Low-scoring answers would go to
+> Maria's review queue. Nothing is ever stored silently.
 
 ## Scene 5 — Review draft + fairness check (0:50)
 
@@ -139,16 +134,15 @@ On screen:
 
 Say aloud (over generation):
 
-> Now the real payoff. The app is assembling everything it's allowed to use:
-> Anna's consented self-assessment, and — fetched transiently from the mock
-> BambooHR-and-Lattice connector — peer reviews, feedback, and my 1:1 notes,
-> plus her goals and the role expectations for her level. All of it passes a
-> deterministic privacy filter before the agent sees a word. The draft agent —
-> which loads a performance-review drafting skill — must cite an evidence id
-> for every claim and rate every single role expectation. Look: the ones with
-> no evidence anywhere aren't assumed — they're listed as requests for more
-> information. And before I ever see it, a deterministic fairness check flagged
-> this unsupported claim and suggested an evidence-backed replacement.
+> Now the main part. The app collects everything it is allowed to use.
+> Anna's approved self-assessment. Peer reviews, feedback, and my 1:1 notes
+> from the mock HR connector. Her goals. The expectations for her role. All
+> of it passes the privacy filter first. Then the draft agent writes the
+> review. It loads a drafting skill for this. Every claim must cite an
+> evidence id. Every role expectation gets a rating. See these gaps? No
+> evidence means no guess. They become requests for more information. And a
+> fairness check runs before I even see the draft. Here it flagged an
+> unsupported claim and suggested a fix.
 
 ## Scene 6 — Approve and export (0:15)
 
@@ -156,33 +150,33 @@ On screen: approve the draft, export the Markdown, flash the exported file.
 
 Say aloud:
 
-> And the last step is mine, not the model's. Approval and export are human
-> actions, and every sensitive step we just took — including anything denied —
-> is in the audit log.
+> The last step is mine, not the model's. I approve and I export. And every
+> sensitive action is in the audit log. Even the denied ones.
 
 ## Scene 7 — The build (0:30)
 
 Screen: repo README or split of `agent-service/app/` + eval results.
 
-> Built as three ADK 2.0 graph workflows with Pydantic-typed I/O; the review
-> agent loads a drafting skill via SkillToolset. Behavior is graded with
-> agents-cli eval — LLM-as-judge over golden datasets. That loop caught a real
-> safety gap: protected-topic requests were silently laundered into an
-> "approved" survey; a hard-refuse path took that case from 1 out of 5 to 5
-> out of 5. Sixty-seven Vitest tests cover the security stories.
+> The build: three ADK graph workflows, all with typed input and output. The
+> review agent loads a skill through SkillToolset. I grade the agents with
+> agents-cli eval. An LLM judge scores them on golden datasets. That loop
+> caught a real safety gap. Requests about protected topics were quietly
+> replaced and marked approved. I added a hard-refuse path. That case went
+> from one out of five to five out of five. And sixty-seven tests cover the
+> security stories.
 
 **Antigravity beat (15–20s, only if you can show real usage):** switch to the
 Antigravity IDE with the project open and your genuine task history visible:
 
-> Parts of the project were built and refactored with Google Antigravity —
-> here's the actual task history.
+> Parts of this project were built with Google Antigravity. Here is the real
+> task history.
 
 Keep the claim proportional to real usage; do not overclaim.
 
 Close over `cover.png`:
 
-> ReviewOps: earn the trust in code, then use the model. Live demo and public
-> repo linked below.
+> ReviewOps: earn the trust in code, then use the model. The live demo and the
+> repo are linked below.
 
 ## After recording
 
