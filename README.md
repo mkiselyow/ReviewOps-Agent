@@ -246,8 +246,8 @@ expectations. See [docs/ROADMAP.md](docs/ROADMAP.md).
 ## Kaggle capstone concepts demonstrated
 
 Multi-agent orchestration (ADK 2.0 graph `Workflow`s) · dynamic manager-driven
-generation · tool/service use + `SkillToolset` · **mock MCP/connector boundary**
-(BambooHR/Lattice contracts) · long-running business workflow · state & memory
+generation · tool/service use + `SkillToolset` · **mock connector boundary**
+(BambooHR/Lattice contracts, MCP-ready) · long-running business workflow · state & memory
 (SQLite) · access control & RBAC · privacy/data minimization · confidence-gated
 routing · human-in-the-loop approval · grounding & fairness checking ·
 evaluation framework (`agents-cli eval`, LLM-as-judge, trajectory) · observability

@@ -143,9 +143,10 @@ multi-agent orchestration (ADK graph `Workflow`s); tool/service use plus on-dema
 `SkillToolset` skills; **dynamic, manager-driven questionnaire generation** with a
 **deterministic output normalizer** enforcing invariants on model output, plus
 refine-and-regenerate; evidence validation with **confidence-gated routing** and a
-**confirm-before-store / dedup / lock** flow; a **mock MCP/connector boundary**
-(BambooHR/Lattice-shaped contracts) whose peer reviews, feedback, and 1:1 notes
-transiently ground drafts; privacy filtering before every model call;
+**confirm-before-store / dedup / lock** flow; a **mock connector boundary**
+(BambooHR/Lattice-shaped contracts, built for an MCP swap-in) whose peer
+reviews, feedback, and 1:1 notes transiently ground drafts; privacy filtering
+before every model call;
 human-in-the-loop approval; grounding and fairness checking; observability
 (OpenTelemetry) and an applied evaluation framework; and audit logging.
 
@@ -183,7 +184,7 @@ the single-pass path unchanged.
 - **Deployment secrets** live in env only (Vercel + Cloud Run runtime SA), never
   in the image or the repo; the agent runs in Vertex mode with no key in the image.
 
-## Connectors (the MCP boundary)
+## Connectors (an MCP-ready boundary)
 
 The MVP uses mock connectors for reproducibility and privacy, but behind **typed,
 vendor-neutral contracts** in `src/server/connectors/`: a BambooHR-shaped
@@ -239,15 +240,16 @@ Next.js frontend runs on **Vercel**, backed by **Turso/libSQL** (the DB layer is
 dual-driver: better-sqlite3 locally, Turso in prod). Full reproduction in
 [`DEPLOY.md`](DEPLOY.md).
 
-## Capstone key concepts — where to find each
+## Capstone key concepts — four of the six demonstrated (three required)
 
-| Course concept | Where | Evidence |
+| Course concept | Status | Where / evidence |
 |---|---|---|
-| Multi-agent system (ADK) | Code | Three ADK 2.0 graph `Workflow`s — `agent-service/app/agent.py`, `evidence.py`, `review.py` — each chaining LLM agents with deterministic nodes |
-| Agent skills / Agents CLI | Code | `drafting-performance-reviews` skill (`SKILL.md` + grounding rules + eval cases) loaded via `SkillToolset`; behavior graded with `agents-cli eval` |
-| Security features | Code | RBAC before the model, SHA-256 token hashing, HMAC-signed sessions, PII redaction + injection screening, rate limiting, audit log |
-| Deployability | Video + docs | Live on Vercel + Cloud Run + Turso; reproduction in [`DEPLOY.md`](DEPLOY.md); Playwright smoke against prod |
-| MCP boundary | Code | Vendor-neutral connector contracts (`src/server/connectors/`) built for a BambooHR/Lattice/MCP swap-in (mock in the MVP) |
+| Agent / multi-agent system (ADK) | ✅ Code | Three ADK 2.0 graph `Workflow`s — `agent-service/app/agent.py`, `evidence.py`, `review.py` — each chaining LLM agents with deterministic nodes |
+| Security features | ✅ Code | RBAC before the model, SHA-256 token hashing, HMAC-signed sessions, PII redaction + injection screening, rate limiting, audit log |
+| Deployability | ✅ Video + docs | Live on Vercel + Cloud Run + Turso; reproduction in [`DEPLOY.md`](DEPLOY.md); Playwright smoke against prod |
+| Agent skills (Agents CLI) | ✅ Code | `drafting-performance-reviews` skill (`SKILL.md` + grounding rules + eval cases) loaded via ADK `SkillToolset` in `review.py`; service scaffolded and evaluated with `agents-cli` (`install`, `eval generate/grade` on Vertex) |
+| MCP Server | — not claimed | Not in the MVP. The vendor-neutral connector contracts (`src/server/connectors/`) are built for an MCP swap-in, and a ready-to-run prompt for exposing ReviewOps as an MCP server (mock OAuth 2.1) is queued: [`PROMPT_MCP_SERVER.md`](PROMPT_MCP_SERVER.md) |
+| Antigravity | — not claimed | Used only to set up the GCP CLI during deployment; not part of the build |
 
 ## Limitations
 
