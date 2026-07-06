@@ -7,6 +7,7 @@ generate interim or annual review drafts — always with human approval and neve
 sending raw employee data to the model.
 
 > Kaggle AI Agents capstone — track: **Agents for Business**. All data is synthetic.
+> **▶ 5-min demo video: https://www.youtube.com/watch?v=jG2HUoLD8ME**
 >
 > **Architecture:** hybrid — a TypeScript **Next.js frontend** + a **Python ADK
 > 2.0 agent service** (graph `Workflow`s, Gemini; requires an API key with

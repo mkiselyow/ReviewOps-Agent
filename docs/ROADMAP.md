@@ -83,11 +83,10 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
   **https://reviewops-agent.vercel.app** (Vercel + Cloud Run + Turso, verified
   end-to-end).
 - 🔴 **Submission artifacts (HIGH, in progress):** the **≤5-min demo video is
-  recorded** (the DEMO_SCRIPT doc was retired once filmed) — remaining: upload to
-  YouTube, insert the URL into the writeup, attach the media (cover +
-  screenshots in `diagrams/` and `media/`), and submit the Kaggle Writeup
-  (draft under the 2,500-word cap, *Agents for Business*). Required for
-  eligibility and worth 30 of 100 points.
+  live** — https://www.youtube.com/watch?v=jG2HUoLD8ME (the DEMO_SCRIPT doc was
+  retired once filmed) — remaining: finish the Kaggle form (paste
+  `KAGGLE_WRITEUP_SUBMISSION.md`, card + media gallery, links) and **Submit**
+  before 2026-07-06 23:59 PT. Required for eligibility, worth 30 of 100 points.
 - ✅ **GitHub repo public** — `github.com/mkiselyow/ReviewOps-Agent` (MIT license,
   About/topics set, README + diagrams verified rendering anonymously).
 - **CI (GitHub Actions).** *Why:* catch regressions automatically on every push so

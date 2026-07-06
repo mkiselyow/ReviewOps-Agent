@@ -6,7 +6,7 @@
 
 ![ReviewOps Agent](https://raw.githubusercontent.com/mkiselyow/ReviewOps-Agent/main/docs/diagrams/cover.png)
 
-**Live demo:** https://reviewops-agent.vercel.app · **Code:** github.com/mkiselyow/ReviewOps-Agent · **Video:** `<YOUTUBE-URL — insert before submitting>`
+**Live demo:** https://reviewops-agent.vercel.app · **Code:** github.com/mkiselyow/ReviewOps-Agent · **Video:** https://www.youtube.com/watch?v=jG2HUoLD8ME
 
 *(All data is synthetic.)*
 
