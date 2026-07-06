@@ -6,7 +6,7 @@
 
 ![ReviewOps Agent](diagrams/cover.svg)
 
-**Live demo:** https://reviewops-agent.vercel.app · **Code:** github.com/mkiselyow/ReviewOps-Agent · **Video:** https://www.youtube.com/watch?v=jG2HUoLD8ME
+**Live demo:** https://reviewops-agent.vercel.app · **Code:** https://github.com/mkiselyow/ReviewOps-Agent · **Video:** https://www.youtube.com/watch?v=jG2HUoLD8ME
 
 *(All data is synthetic.)*
 
@@ -57,6 +57,8 @@ whole architecture.
 
 ## What it does
 
+![Use-case map — who does what, and which actions run an agent workflow (blue) vs. sit with a human (amber)](diagrams/use-case-map.svg)
+
 1. A manager logs in; the app loads their direct reports from a mock HRIS
    connector (permissions enforced in code).
 2. The manager describes a topic, or pastes a skill matrix + rating scale; the
@@ -75,6 +77,8 @@ whole architecture.
    and runs a fairness / grounding check that flags unsupported claims, vague
    praise, and recency bias.
 7. The manager approves and exports the Markdown review.
+
+![End-to-end lifecycle — collect → evidence → review, with the human gates, confidence routing, and quality loops](diagrams/activity-lifecycle.svg)
 
 ## What it looks like
 

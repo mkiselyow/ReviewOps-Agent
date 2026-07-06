@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 500" role="img" aria-labelledby="t d" font-family="'Segoe UI',system-ui,-apple-system,sans-serif">
+  <title id="t">ReviewOps Agent — use-case map</title>
+  <desc id="d">Manager use cases: generate and approve questionnaire (agent workflow, human approval), view team results and evidence (RBAC-scoped), review low-confidence evidence (human decision), generate and approve review draft (agent workflow, human approval), export review Markdown (after approval, audited). Employee use cases: open token link and submit survey (validated with follow-ups), add evidence directly (confirm-before-store), improve a weak answer (quality loop), set evidence consent (governs review grounding). Blue means an agent workflow runs behind it, amber a human control point, slate app-only.</desc>
+  <defs>
+    <style>
+      .t{fill:#f2f6fc;font-weight:800;font-size:24px}
+      .sub{fill:#9fb0cc;font-size:14px}
+      .nl{fill:#e7eef9;font-weight:700;font-size:13px}
+      .sm{fill:#9fb0cc;font-size:10.5px}
+      .an{fill:#f2f6fc;font-weight:700;font-size:14px}
+      .agent{fill:#16223c;stroke:#5b9bff;stroke-width:1.6}
+      .humanc{fill:#221c10;stroke:#f4b740;stroke-width:1.6}
+      .app{fill:#0f1a30;stroke:#3a4a66;stroke-width:1.5}
+      .link{stroke:#2e3d5c;stroke-width:1.2}
+    </style>
+  </defs>
+  <rect width="1240" height="500" fill="#0b1220"/>
+  <text x="40" y="44" class="t">Use-case map</text>
+  <text x="40" y="68" class="sub">Who does what — and which actions run an agent workflow vs. sit with a human. The app enforces permissions between the two actors; there is no cross-access.</text>
+
+  <!-- Manager actor -->
+  <circle cx="110" cy="262" r="36" fill="#16223c" stroke="#f4b740" stroke-width="2"/>
+  <text x="110" y="272" text-anchor="middle" font-size="26">👤</text>
+  <text x="110" y="322" text-anchor="middle" class="an">Manager</text>
+  <text x="110" y="340" text-anchor="middle" class="sm">RBAC: only own direct reports</text>
+  <text x="110" y="354" text-anchor="middle" class="sm">passphrase login · HMAC session</text>
+
+  <!-- Manager use cases -->
+  <g>
+    <rect x="252" y="96" width="330" height="52" rx="12" class="agent"/>
+    <text x="268" y="117" class="nl">Generate &amp; approve questionnaire</text>
+    <text x="268" y="134" class="sm">agent: plan → safety verdict · manager approves &amp; sends</text>
+
+    <rect x="252" y="162" width="330" height="52" rx="12" class="app"/>
+    <text x="268" y="183" class="nl">View team results &amp; evidence</text>
+    <text x="268" y="200" class="sm">RBAC-scoped · raw quote + the agent’s concern shown</text>
+
+    <rect x="252" y="228" width="330" height="52" rx="12" class="humanc"/>
+    <text x="268" y="249" class="nl">Review low-confidence evidence</text>
+    <text x="268" y="266" class="sm">approve / reject the queue — a human decision</text>
+
+    <rect x="252" y="294" width="330" height="52" rx="12" class="agent"/>
+    <text x="268" y="315" class="nl">Generate &amp; approve review draft</text>
+    <text x="268" y="332" class="sm">agent: grounded draft + fairness check · manager approves</text>
+
+    <rect x="252" y="360" width="330" height="52" rx="12" class="app"/>
+    <text x="268" y="381" class="nl">Export review Markdown</text>
+    <text x="268" y="398" class="sm">only after approval · audited</text>
+  </g>
+
+  <!-- Employee use cases -->
+  <g>
+    <rect x="662" y="129" width="330" height="52" rx="12" class="agent"/>
+    <text x="678" y="150" class="nl">Open token link &amp; submit survey</text>
+    <text x="678" y="167" class="sm">validated · weak answers get follow-up questions</text>
+
+    <rect x="662" y="195" width="330" height="52" rx="12" class="agent"/>
+    <text x="678" y="216" class="nl">Add evidence directly</text>
+    <text x="678" y="233" class="sm">confirm-before-store · dedup · locked after review</text>
+
+    <rect x="662" y="261" width="330" height="52" rx="12" class="agent"/>
+    <text x="678" y="282" class="nl">Improve a weak answer</text>
+    <text x="678" y="299" class="sm">quality loop until specific — score visibly rises</text>
+
+    <rect x="662" y="327" width="330" height="52" rx="12" class="humanc"/>
+    <text x="678" y="348" class="nl">Set evidence consent</text>
+    <text x="678" y="365" class="sm">allow_for_review gates what can ground a draft</text>
+  </g>
+
+  <!-- Employee actor -->
+  <circle cx="1130" cy="262" r="36" fill="#16223c" stroke="#34d399" stroke-width="2"/>
+  <text x="1130" y="272" text-anchor="middle" font-size="26">👤</text>
+  <text x="1130" y="322" text-anchor="middle" class="an">Employee</text>
+  <text x="1130" y="340" text-anchor="middle" class="sm">identity from the token link</text>
+  <text x="1130" y="354" text-anchor="middle" class="sm">sees &amp; edits only own data</text>
+
+  <!-- links -->
+  <line x1="146" y1="248" x2="250" y2="122" class="link"/>
+  <line x1="146" y1="256" x2="250" y2="188" class="link"/>
+  <line x1="146" y1="262" x2="250" y2="254" class="link"/>
+  <line x1="146" y1="268" x2="250" y2="320" class="link"/>
+  <line x1="146" y1="276" x2="250" y2="386" class="link"/>
+  <line x1="1094" y1="252" x2="994" y2="155" class="link"/>
+  <line x1="1094" y1="258" x2="994" y2="221" class="link"/>
+  <line x1="1094" y1="266" x2="994" y2="287" class="link"/>
+  <line x1="1094" y1="274" x2="994" y2="353" class="link"/>
+
+  <!-- legend -->
+  <rect x="40" y="446" width="26" height="14" rx="4" class="agent"/><text x="74" y="457" class="sm">an agent workflow runs behind it</text>
+  <rect x="286" y="446" width="26" height="14" rx="4" class="humanc"/><text x="320" y="457" class="sm">human control point</text>
+  <rect x="470" y="446" width="26" height="14" rx="4" class="app"/><text x="504" y="457" class="sm">app-only · RBAC-scoped · audited</text>
+  <text x="1200" y="457" text-anchor="end" class="sm">every sensitive action lands in the audit log</text>
+</svg>
