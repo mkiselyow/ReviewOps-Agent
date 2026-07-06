@@ -19,6 +19,7 @@ keep the numbered order.
 | `10-results.png` | Questionnaire results with scores and follow-up history |
 | `11-access-denied.png` | RBAC in action: generating a review for another team's employee is refused |
 | `12-audit-log.png` | Audit log of sensitive actions |
+| `review-sequence.png` | Sequence diagram of one review request — permission assert, consent-gated context, privacy filter, pre-LLM security node, Gemini, save + audit |
 | `architecture-detailed.png` · `agent-workflows.png` · `deploy-topology.png` | 2× PNG exports of the architecture diagrams |
 
 Cover image: [`../diagrams/cover.svg`](../diagrams/cover.svg) / `cover.png` (1200×630).

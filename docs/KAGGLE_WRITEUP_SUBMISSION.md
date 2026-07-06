@@ -84,8 +84,12 @@ whole architecture.
 
 ![Review draft — privacy-filter categories, evidence-id citations, role-expectation coverage, fairness flags](https://raw.githubusercontent.com/mkiselyow/ReviewOps-Agent/main/docs/media/09-review-draft.png)
 
+![Manager review queue — low-confidence evidence with the quoted raw text, the agent's concern, and approve/reject (human-in-the-loop)](https://raw.githubusercontent.com/mkiselyow/ReviewOps-Agent/main/docs/media/08-evidence-queue.png)
+
+![RBAC in action — generating a review for another team's employee is refused in code, before any model call](https://raw.githubusercontent.com/mkiselyow/ReviewOps-Agent/main/docs/media/11-access-denied.png)
+
 *Full tour (login → dashboard → outbox → consent-gated survey → confirm-before-store →
-manager queue → results → RBAC denial → audit log): [`docs/media/`](https://github.com/mkiselyow/ReviewOps-Agent/tree/main/docs/media).*
+results → audit log): [`docs/media/`](https://github.com/mkiselyow/ReviewOps-Agent/tree/main/docs/media).*
 
 ## Architecture
 
@@ -107,6 +111,12 @@ The agent brain lives in `agent-service/`; the app calls it via
 `src/server/agentClient.ts`. Unit tests mock the client — there is no in-process
 agent fallback, so the boundary is real. The full architecture detail lives in
 [`ARCHITECTURE.md`](https://github.com/mkiselyow/ReviewOps-Agent/blob/main/docs/ARCHITECTURE.md).
+
+**Why hybrid?** Google's current ADK best-practice stack — graph `Workflow`s and
+the `agents-cli` lifecycle (scaffold / playground / eval / deploy) — ships in
+**Python ADK 2.0**; the TypeScript ADK line lacks the graph DSL. Python
+maximizes ADK depth, TypeScript keeps the UI and the security boundary — and the
+split is a feature: the trust layer and the model layer evolve independently.
 
 The design deliberately applies two Google (2026) whitepapers, referenced by
 title: *Vibe Coding Agent Security and Evaluation* (the 7-pillar security model,
@@ -184,14 +194,20 @@ the single-pass path unchanged.
 - **Deployment secrets** live in env only (Vercel + Cloud Run runtime SA), never
   in the image or the repo; the agent runs in Vertex mode with no key in the image.
 
+One review request end-to-end — every gate fires before Gemini is called:
+
+![Review request sequence — permission assert, consent-gated context, privacy filter, pre-LLM security node, then Gemini, then save + audit](https://raw.githubusercontent.com/mkiselyow/ReviewOps-Agent/main/docs/media/review-sequence.png)
+
 ## Connectors (an MCP-ready boundary)
 
 The MVP uses mock connectors for reproducibility and privacy, but behind **typed,
 vendor-neutral contracts** in `src/server/connectors/`: a BambooHR-shaped
 `DirectoryConnector` and a Lattice-shaped `PerformanceConnector` (peer reviews,
 feedback, 1:1 notes, goals). `gatherReviewSignals` folds these into review
-grounding. A real API or MCP server can swap in behind the same interface; the
-mock outbox can become Slack/email.
+grounding — fetched **transiently** at generation time (never stored), passed
+through the same PII filter as internal evidence, and **reviewer-anonymized**.
+A real API or MCP server can swap in behind the same interface; the mock outbox
+can become Slack/email.
 
 ## Human-in-the-loop and ethics
 
