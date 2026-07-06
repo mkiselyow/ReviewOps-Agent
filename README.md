@@ -209,6 +209,10 @@ review 5.00) plus a no-GCP `agent-service/tests/eval/structural_smoke.py`.
   agent client.
 - Single-manager direct-report scope (no skip-level / HR-admin flows).
 - PII redaction is pattern-based and demonstrative.
+- **Uneven flow maturity:** the questionnaire flow has real mileage (a real
+  ~420-question skill-matrix survey ran through it); the interim/annual
+  **review-draft flow** works end-to-end but has had less hands-on testing — a
+  real-use hardening pass is the top roadmap item.
 
 ## Deployment
 
@@ -231,9 +235,13 @@ To reproduce the deployment (**full steps: [docs/DEPLOY.md](docs/DEPLOY.md)**):
 
 ## Roadmap
 
-Slack delivery; Cloud Scheduler for event-driven reminders; real Lattice/BambooHR
-adapters; Notion/knowledge base for values, ladder, and role expectations. See
-[docs/ROADMAP.md](docs/ROADMAP.md).
+Top of the queue: a **real-use hardening pass of the review flow** (verify role
+expectations → info requests, self-assessment/feedback grounding, fairness
+checks under real conditions) and an **MCP server surface** (mock OAuth 2.1;
+ready-to-run prompt in [docs/PROMPT_MCP_SERVER.md](docs/PROMPT_MCP_SERVER.md)).
+Then: Slack delivery; Cloud Scheduler for event-driven reminders; real
+Lattice/BambooHR adapters; Notion/knowledge base for values, ladder, and role
+expectations. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Kaggle capstone concepts demonstrated
 
@@ -260,8 +268,9 @@ evaluation framework (`agents-cli eval`, LLM-as-judge, trajectory) · observabil
   latest scores in [docs/EVAL_RESULTS.md](docs/EVAL_RESULTS.md).
 - [docs/PROJECT_SPEC.md](docs/PROJECT_SPEC.md) — product definition, users,
   user stories.
-- [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) — the capstone video walkthrough.
 - [docs/ROADMAP.md](docs/ROADMAP.md) — post-MVP integrations.
+- [docs/PROMPT_MCP_SERVER.md](docs/PROMPT_MCP_SERVER.md) — ready-to-run
+  implementation prompt for the queued **MCP server surface** (mock OAuth 2.1).
 - [docs/KAGGLE_WRITEUP_DRAFT.md](docs/KAGGLE_WRITEUP_DRAFT.md) — the Kaggle
   writeup.
 - [docs/diagrams/](docs/diagrams/) — rendered SVG diagrams.

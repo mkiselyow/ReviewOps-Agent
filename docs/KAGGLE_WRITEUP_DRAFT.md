@@ -76,6 +76,17 @@ whole architecture.
    praise, and recency bias.
 7. The manager approves and exports the Markdown review.
 
+## What it looks like
+
+![Generated skill-matrix questionnaire — safety verdict, shared L1–L5 legend, sections](media/03-questionnaire-matrix-preview.png)
+
+![Evidence validation — weak answers get a quality score, a follow-up question, and missing-detail hints](media/04-survey-weak-followups.png)
+
+![Review draft — privacy-filter categories, evidence-id citations, role-expectation coverage, fairness flags](media/09-review-draft.png)
+
+*Full tour (login → dashboard → outbox → consent-gated survey → confirm-before-store →
+manager queue → results → RBAC denial → audit log): [`docs/media/`](media/).*
+
 ## Architecture
 
 ReviewOps is a **hybrid**: a TypeScript **Next.js** frontend and a **Python
@@ -245,9 +256,22 @@ connectors behind typed contracts. Single-manager direct-report scope (no
 skip-level / HR-admin flows). PII redaction is pattern-based and demonstrative.
 Synthetic data only; not a production performance-management system.
 
+**Maturity is uneven across the two flows — honestly.** The questionnaire flow
+has real mileage: it ran a real ~420-question skill-matrix survey for a real
+team. The interim/annual review flow works end-to-end and scores 5.00 on its
+eval rubric, but has had much less hands-on use; verifying under real conditions
+that role expectations convert into explicit information requests and that
+self-assessment, feedback grounding, and the fairness check all contribute as
+designed is the top item on the roadmap.
+
 ## Future work
 
-Slack delivery and Cloud Scheduler reminders; real Lattice/BambooHR adapters; a
-Notion connector for values and role ladders; evidence attachments; async
-generation to remove the 60s ceiling; OAuth/SSO; durable rate limiting; an
-observability dashboard over agent traces and eval results.
+Next in queue: the **review-flow hardening pass** above, and an **MCP server
+surface** — exposing ReviewOps' evidence and review tools to any MCP client
+(Inspector, Claude Desktop, Gemini CLI) behind a mock OAuth 2.1 flow, with the
+same in-code RBAC; the implementation prompt is already drafted in
+[`PROMPT_MCP_SERVER.md`](PROMPT_MCP_SERVER.md). Then: Slack delivery and Cloud
+Scheduler reminders; real Lattice/BambooHR adapters; a Notion connector for
+values and role ladders; evidence attachments; async generation to remove the
+60s ceiling; OAuth/SSO; durable rate limiting; an observability dashboard over
+agent traces and eval results.

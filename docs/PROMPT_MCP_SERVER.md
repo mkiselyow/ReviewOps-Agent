@@ -1,6 +1,6 @@
 # Prompt: expose ReviewOps as an MCP server (mock OAuth 2.1)
 
-> Implementation prompt for a coding agent (written for Google Antigravity).
+> Implementation prompt for a coding agent (Gemini CLI, Claude Code, or similar).
 > Goal: any MCP client (MCP Inspector, Claude Desktop, Gemini CLI) can connect
 > to ReviewOps' own MCP endpoint over streamable HTTP, authenticate through a
 > **mock OAuth 2.1 flow** (demo/MVP: sign in as Maria), and query a manager's
@@ -71,7 +71,7 @@ Add alongside the existing 13 vitest suites (check `tests/` setup helpers and re
 - `docs/ARCHITECTURE.md`: new subsection — the MCP surface, the mock OAuth 2.1 design (PKCE, stateless signed codes/tokens, `isTestUser` gate), why approve/export are excluded (HITL), and the **production path: replace the mock AS with a real IdP/SSO** (verified email → `getUserByEmail`).
 - `docs/ROADMAP.md`: add a post-MCP item — "Real OAuth 2.1 / SSO for the MCP surface (replace the mock authorization server with a real IdP; per-user consent screens; refresh tokens)".
 - `docs/KAGGLE_WRITEUP_DRAFT.md`: update the MCP row in the "Capstone key concepts" table and the "mock MCP/connector boundary" phrase in "Why this is an agent, not a chatbot". The writeup is ~1,900 of a hard 2,500-word limit — keep edits roughly word-neutral.
-- `docs/DEMO_SCRIPT.md`: add an optional ~30s beat in the build scene: connect MCP Inspector to the live URL on camera, OAuth "Continue as Maria", call `list_direct_reports` then `get_evidence_summary` for Anna.
+- Optional demo beat for any future video: connect MCP Inspector to the live URL on camera, OAuth "Continue as Maria", call `list_direct_reports` then `get_evidence_summary` for Anna.
 
 **Ground rules:** no API keys or secrets committed (`SESSION_SECRET` stays env-only); comment the non-obvious decisions in code (identity from bearer not session/params, `isTestUser` gate rationale, HITL exclusions, stateless signed tokens); match existing code style (typed, zod-validated, small modules); don't modify `agent-service/`; existing app behavior unchanged (everything is additive).
 

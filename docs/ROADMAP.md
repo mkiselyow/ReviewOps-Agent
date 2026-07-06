@@ -82,11 +82,12 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
 - ✅ **Public project link satisfied** — live demo at
   **https://reviewops-agent.vercel.app** (Vercel + Cloud Run + Turso, verified
   end-to-end).
-- 🔴 **Submission artifacts (HIGH, still TODO):** record and upload the **≤5-min
-  YouTube demo video** (script ready in [DEMO_SCRIPT.md](DEMO_SCRIPT.md)), insert
-  its URL into the writeup, then submit the Kaggle Writeup (draft is
-  submission-ready at 1,898/2,500 words, *Agents for Business*, cover image in
-  `diagrams/`). Required for eligibility and worth 30 of 100 points.
+- 🔴 **Submission artifacts (HIGH, in progress):** the **≤5-min demo video is
+  recorded** (the DEMO_SCRIPT doc was retired once filmed) — remaining: upload to
+  YouTube, insert the URL into the writeup, attach the media (cover +
+  screenshots in `diagrams/` and `media/`), and submit the Kaggle Writeup
+  (draft under the 2,500-word cap, *Agents for Business*). Required for
+  eligibility and worth 30 of 100 points.
 - ✅ **GitHub repo public** — `github.com/mkiselyow/ReviewOps-Agent` (MIT license,
   About/topics set, README + diagrams verified rendering anonymously).
 - **CI (GitHub Actions).** *Why:* catch regressions automatically on every push so
@@ -95,6 +96,42 @@ its own hardening roadmap, driven by Google's 2026 *Security & Evaluation* and
   **manual/scheduled** job can run `agents-cli eval` — it needs Vertex ADC as GitHub
   secrets and costs money per run, so it is **not** wired to every PR. (Recorded
   here so it isn't re-scoped later.)
+
+### B3. Review-flow real-use hardening (🔴 HIGH — top post-submission priority)
+
+Honest gap: the **interim/annual review-draft flow is the least-exercised path**.
+The questionnaire flow has real mileage (a real ~420-question skill-matrix survey
+ran through it end-to-end); the review flow works in the demo and scores 5.00 on
+its eval rubric, but hasn't had comparable hands-on use. A deliberate real-use
+verification pass:
+- **Role expectations → info requests:** confirm expectations with no evidence
+  really surface as explicit "request more information" items (`not yet
+  evidenced`), not assumed strengths — across seniority levels of the role matrix.
+- **All grounding sources actually contribute:** self-assessment, peer reviews,
+  feedback, 1:1 notes, and goal status each visibly shift the draft when present
+  (and their absence is handled gracefully).
+- **Fairness check fires under real conditions:** unsupported claims, vague
+  praise/criticism, and recency bias get flagged on real drafts, not just golden
+  cases.
+- **Rating calibration:** `at level / above level / developing toward level`
+  judgments hold up against the role matrix on real evidence mixes.
+- **Known finding (2026-07-06, spotted while capturing screenshots):** weak
+  survey answers (quality 0.05–0.10) are stored as **`approved`** evidence cards
+  instead of pending/excluded, and an improved resubmission doesn't supersede
+  the weak cards — decide the intended policy (score-gate survey-derived
+  evidence like direct submissions; replace cards on resubmit) and fix.
+- Fold every finding into new eval golden cases (regression-proof the fixes).
+
+### B4. MCP server surface (queued next — implementation prompt ready)
+
+Expose ReviewOps itself as an **MCP server** (streamable HTTP) behind a **mock
+OAuth 2.1 flow** (PKCE, stateless HMAC-signed codes/tokens, `isTestUser` +
+manager gate), so any MCP client — Inspector, Claude Desktop, Gemini CLI — can
+list direct reports, query evidence/questionnaire status, and generate drafts
+with the app's existing in-code RBAC re-asserted on every call; approve/export
+deliberately excluded (HITL stays in the UI). The full ready-to-run prompt lives
+in **[PROMPT_MCP_SERVER.md](PROMPT_MCP_SERVER.md)**; a real IdP replaces the mock
+AS later (see §G).
 
 ### C. Security (7-Pillar) — beyond today's baseline
 Today: access control before model, pre-LLM PII redaction, HITL approval, no
@@ -115,10 +152,11 @@ authorization; EU AI Act governance/attestation (Pillar 7).
 ### F. Evaluation
 - ✅ Golden datasets + rubrics authored for all three workflows
   (`agent-service/tests/eval/`); no-GCP `structural_smoke.py` in place.
-- ✅ **Ran `agents-cli eval generate/grade`** on Vertex — baseline recorded
-  (questionnaire 4.43→**5.00**, evidence/review **5.00**); the run surfaced the
+- ✅ **Ran `agents-cli eval generate/grade`** on Vertex — the run surfaced the
   safety silent-substitution gap → fixed with **hard-refuse** + rubric
-  calibration; verified via `eval compare` (see `EVALUATION_PLAN.md` §0.4, §2.4).
+  calibration; verified via `eval compare` (baseline questionnaire 4.43, fixed
+  case 1/5→5/5; current means with the expanded probe set: questionnaire
+  **4.67**, evidence **5.00**, review **5.00** — see `EVAL_RESULTS.md`).
 - ⬜ Wire the eval run into CI; chase the two residual flakes (Vertex autorater
   JSON parse; review-draft markdown-fence, ADK-retry-covered).
 
