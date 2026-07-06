@@ -288,12 +288,21 @@ designed is the top item on the roadmap.
 
 ## Future work
 
-Next in queue: the **review-flow hardening pass** above, and an **MCP server
-surface** — exposing ReviewOps' evidence and review tools to any MCP client
-(Inspector, Claude Desktop, Gemini CLI) behind a mock OAuth 2.1 flow, with the
-same in-code RBAC; the implementation prompt is already drafted in
-[`PROMPT_MCP_SERVER.md`](https://github.com/mkiselyow/ReviewOps-Agent/blob/main/docs/PROMPT_MCP_SERVER.md). Then: Slack delivery and Cloud
-Scheduler reminders; real Lattice/BambooHR adapters; a Notion connector for
-values and role ladders; evidence attachments; async generation to remove the
-60s ceiling; OAuth/SSO; durable rate limiting; an observability dashboard over
-agent traces and eval results.
+The full phased plan lives in [`ROADMAP.md`](https://github.com/mkiselyow/ReviewOps-Agent/blob/main/docs/ROADMAP.md). Next in queue: the
+**review-flow hardening pass** above, and an **MCP server surface** — exposing
+ReviewOps' evidence and review tools to any MCP client (Inspector, Claude
+Desktop, Gemini CLI) behind a mock OAuth 2.1 flow, with the same in-code RBAC;
+the implementation prompt is already drafted in
+[`PROMPT_MCP_SERVER.md`](https://github.com/mkiselyow/ReviewOps-Agent/blob/main/docs/PROMPT_MCP_SERVER.md).
+
+Highlights further out: **one-click follow-up** — turn a draft's "not yet
+evidenced" expectations into a targeted mini-questionnaire sent via the outbox;
+**evidence attachments** done properly (magic-byte type checks, AV scan,
+EXIF/PII stripping, signed URLs); richer connector signals — prior reviews, OKR
+metrics, values-tagged kudos — with engagement data kept *context-only, never a
+rating input*; Slack delivery + Cloud Scheduler reminders; real Lattice/BambooHR
+adapters and a Notion source for values and role ladders; async generation to
+remove the 60s ceiling; OAuth/SSO, a private (IAM/OIDC) agent, durable rate
+limiting; and the rest of the 7-pillar security ladder (LLM firewall, agentic
+identity, red-teaming) plus an observability dashboard over traces and eval
+results.
