@@ -139,6 +139,11 @@ secrets in frontend, audit trail. Roadmap: prompt-injection screening + LLM
 firewall (Pillar 4); secrets-scan/SAST in CI; agentic identity + JIT downscoping
 (Pillar 5); Red/Blue/Green teaming + circuit breakers (Pillar 6); MCP contextual
 authorization; EU AI Act governance/attestation (Pillar 7).
+- **Scope `/audit` per team.** Today the audit page lists the global last-200
+  rows to any signed-in user — a deliberate, reviewed demo trade-off (it exposes
+  first names, action types, and opaque ids only; no titles, answers, or
+  evidence content). Production semantics: a manager sees their own + their
+  reports' rows, an employee their own.
 
 ### D. Observability
 - OpenTelemetry export (`agent.session/think/tool`) → Cloud Trace; token-cost
