@@ -90,10 +90,8 @@ whole architecture.
 
 ![Manager review queue — low-confidence evidence with the quoted raw text, the agent's concern, and approve/reject (human-in-the-loop)](https://raw.githubusercontent.com/mkiselyow/ReviewOps-Agent/main/docs/media/08-evidence-queue.png)
 
-![RBAC in action — generating a review for another team's employee is refused in code, before any model call](https://raw.githubusercontent.com/mkiselyow/ReviewOps-Agent/main/docs/media/11-access-denied.png)
-
 *Full tour (login → dashboard → outbox → consent-gated survey → confirm-before-store →
-results → audit log): [`docs/media/`](https://github.com/mkiselyow/ReviewOps-Agent/tree/main/docs/media).*
+results → RBAC denial → audit log): [`docs/media/`](https://github.com/mkiselyow/ReviewOps-Agent/tree/main/docs/media).*
 
 ## Architecture
 
@@ -268,8 +266,8 @@ dual-driver: better-sqlite3 locally, Turso in prod). Full reproduction in
 | Security features | ✅ Code | RBAC before the model, SHA-256 token hashing, HMAC-signed sessions, PII redaction + injection screening, rate limiting, audit log |
 | Deployability | ✅ Video + docs | Live on Vercel + Cloud Run + Turso; reproduction in [`DEPLOY.md`](https://github.com/mkiselyow/ReviewOps-Agent/blob/main/docs/DEPLOY.md); Playwright smoke against prod |
 | Agent skills (Agents CLI) | ✅ Code | `drafting-performance-reviews` skill (`SKILL.md` + grounding rules + eval cases) loaded via ADK `SkillToolset` in `review.py`; service scaffolded and evaluated with `agents-cli` (`install`, `eval generate/grade` on Vertex) |
-| MCP Server | — not claimed | Not in the MVP. The vendor-neutral connector contracts (`src/server/connectors/`) are built for an MCP swap-in, and a ready-to-run prompt for exposing ReviewOps as an MCP server (mock OAuth 2.1) is queued: [`PROMPT_MCP_SERVER.md`](https://github.com/mkiselyow/ReviewOps-Agent/blob/main/docs/PROMPT_MCP_SERVER.md) |
-| Antigravity | — not claimed | Used only to set up the GCP CLI during deployment; not part of the build |
+| MCP Server | 🔜 roadmap | The vendor-neutral connector contracts (`src/server/connectors/`) are built for an MCP swap-in, and a ready-to-run prompt for exposing ReviewOps as an MCP server (mock OAuth 2.1) is next in queue: [`PROMPT_MCP_SERVER.md`](https://github.com/mkiselyow/ReviewOps-Agent/blob/main/docs/PROMPT_MCP_SERVER.md) |
+| Antigravity | used in setup | Used to set up the GCP CLI for the Cloud Run / Vertex deployment |
 
 ## Limitations
 
